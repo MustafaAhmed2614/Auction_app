@@ -23,9 +23,12 @@ class HomeScreen extends StatelessWidget {
           ),
         ),
         child: SafeArea(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(vertical: 24),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
               // Logo placeholder
               Container(
                 width: 150,
@@ -155,7 +158,9 @@ class HomeScreen extends StatelessWidget {
                   ),
                 ],
               ),
-            ],
+                ],
+              ),
+            ),
           ),
         ),
       ),

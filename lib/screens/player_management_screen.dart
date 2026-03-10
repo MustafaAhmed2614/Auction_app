@@ -65,7 +65,24 @@ class _PlayerManagementScreenState extends ConsumerState<PlayerManagementScreen>
                       backgroundColor: _getCategoryColor(player.category),
                       child: Text(player.name[0], style: const TextStyle(color: Colors.white)),
                     ),
-                    title: Text('${index + 1}. ${player.name}', style: const TextStyle(color: Colors.white)),
+                    title: Row(
+                      children: [
+                        Text('${index + 1}. ${player.name}', style: const TextStyle(color: Colors.white)),
+                        const SizedBox(width: 8),
+                        if (player.isSold)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(color: Colors.red.withValues(alpha: 0.8), borderRadius: BorderRadius.circular(4)),
+                            child: const Text('SOLD', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                          )
+                        else
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(color: Colors.green.withValues(alpha: 0.8), borderRadius: BorderRadius.circular(4)),
+                            child: const Text('AVAILABLE', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                          )
+                      ],
+                    ),
                     subtitle: Text('${player.category} • Base: ${player.basePrice}', style: const TextStyle(color: Colors.white70)),
                     trailing: IconButton(
                       icon: const Icon(Icons.delete, color: Colors.redAccent),
