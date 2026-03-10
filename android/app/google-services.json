@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1011404994016",
+    "project_id": "auction-app-1c1a6",
+    "storage_bucket": "auction-app-1c1a6.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1011404994016:android:9950e564a3f1a690c9e785",
+        "android_client_info": {
+          "package_name": "com.bpl.bpl_auction"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBOcVNR4zMA1qar1Ou7oxeFsYmYms2IPrQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
