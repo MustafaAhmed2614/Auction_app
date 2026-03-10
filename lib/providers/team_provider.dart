@@ -1,50 +1,84 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:hive_flutter/hive_flutter.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/team.dart';
 
 class TeamNotifier extends Notifier<List<Team>> {
   @override
   List<Team> build() {
-    final box = Hive.box<Team>('teams');
-    return box.values.toList();
+    _listenToTeams();
+    return [];
+  }
+
+  void _listenToTeams() {
+    FirebaseFirestore.instance.collection('teams').snapshots().listen((snapshot) {
+      if (snapshot.docs.isEmpty) {
+        _initializeDefaultTeams();
+        return;
+      }
+      final teams = snapshot.docs.map((doc) => Team.fromJson(doc.data())).toList();
+      state = teams;
+    });
+  }
+
+  Future<void> _initializeDefaultTeams() async {
+    final defaultTeams = [
+      Team(id: 'team1', name: 'Team Alpha', logoPath: 'assets/logos/logo1.png'),
+      Team(id: 'team2', name: 'Team Braves', logoPath: 'assets/logos/logo2.png'),
+      Team(id: 'team3', name: 'Team Challengers', logoPath: 'assets/logos/logo3.png'),
+      Team(id: 'team4', name: 'Team Dominators', logoPath: 'assets/logos/logo4.png'),
+    ];
+
+    final batch = FirebaseFirestore.instance.batch();
+    for (var team in defaultTeams) {
+      final docRef = FirebaseFirestore.instance.collection('teams').doc(team.id);
+      batch.set(docRef, team.toJson());
+    }
+    await batch.commit();
   }
 
   Future<void> updateTeamPoints(String teamId, int previousPoints, int deductedAmount) async {
-    final box = Hive.box<Team>('teams');
-    final team = box.get(teamId);
-    if (team != null) {
-      team.remainingPoints -= deductedAmount;
-      await team.save();
-      state = box.values.toList();
-    }
+    final teamRef = FirebaseFirestore.instance.collection('teams').doc(teamId);
+    await FirebaseFirestore.instance.runTransaction((transaction) async {
+      final snapshot = await transaction.get(teamRef);
+      if (snapshot.exists) {
+        final currentRemaining = snapshot.data()?['remainingPoints'] as int? ?? previousPoints;
+        transaction.update(teamRef, {'remainingPoints': currentRemaining - deductedAmount});
+      }
+    });
   }
 
   Future<void> addTeamPoints(String teamId, int amount) async {
-    final box = Hive.box<Team>('teams');
-    final team = box.get(teamId);
-    if (team != null) {
-      team.remainingPoints += amount;
-      await team.save();
-      state = box.values.toList();
-    }
+    final teamRef = FirebaseFirestore.instance.collection('teams').doc(teamId);
+    await FirebaseFirestore.instance.runTransaction((transaction) async {
+      final snapshot = await transaction.get(teamRef);
+      if (snapshot.exists) {
+        final currentRemaining = snapshot.data()?['remainingPoints'] as int? ?? 0;
+        transaction.update(teamRef, {'remainingPoints': currentRemaining + amount});
+      }
+    });
   }
 
   Future<void> resetTeam(String teamId) async {
-    final box = Hive.box<Team>('teams');
-    final team = box.get(teamId);
-    if (team != null) {
-      team.remainingPoints = 100000; // Default budget
-      await team.save();
-      state = box.values.toList();
-    }
+    final teamRef = FirebaseFirestore.instance.collection('teams').doc(teamId);
+    await teamRef.update({'remainingPoints': 100000});
+  }
+
+  Future<void> addTeam(String name, int budget, String logoPath) async {
+    final newTeam = Team(
+      id: 'team_${DateTime.now().millisecondsSinceEpoch}',
+      name: name,
+      logoPath: logoPath,
+      remainingPoints: budget,
+    );
+    await FirebaseFirestore.instance.collection('teams').doc(newTeam.id).set(newTeam.toJson());
+  }
+
+  Future<void> deleteTeam(String teamId) async {
+    await FirebaseFirestore.instance.collection('teams').doc(teamId).delete();
   }
 
   Future<void> addPlayerToSquad(String teamId, String playerId) async {
-      // In Hive, HiveList is used for relationships, but for simplicity we can just rely on the Player's winningTeam field
-      // Or we can add it to the squad if initialized.
-      // Since it's a bit complex with HiveList, we'll fetch team squad by querying players box instead when needed,
-      // or we just update the team's remaining points here.
-      state = Hive.box<Team>('teams').values.toList();
+      // Logic managed implicitly via History collection
   }
 }
 

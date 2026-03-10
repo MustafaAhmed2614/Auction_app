@@ -29,10 +29,78 @@ class TeamsScreen extends ConsumerWidget {
           itemCount: teams.length,
           itemBuilder: (context, index) {
             final team = teams[index];
-            return _buildTeamCard(context, team);
+            return Dismissible(
+              key: Key(team.id),
+              direction: DismissDirection.endToStart,
+              background: Container(
+                alignment: Alignment.centerRight,
+                padding: const EdgeInsets.only(right: 20),
+                color: Colors.red,
+                child: const Icon(Icons.delete, color: Colors.white),
+              ),
+              onDismissed: (_) {
+                ref.read(teamProvider.notifier).deleteTeam(team.id);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('${team.name} deleted')),
+                );
+              },
+              child: _buildTeamCard(context, team),
+            );
           },
         ),
       ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _showAddTeamDialog(context, ref),
+        backgroundColor: const Color(0xFFFFD700),
+        child: const Icon(Icons.add, color: Colors.black),
+      ),
+    );
+  }
+
+  void _showAddTeamDialog(BuildContext context, WidgetRef ref) {
+    final nameController = TextEditingController();
+    final budgetController = TextEditingController(text: '100000');
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Add New Team'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(labelText: 'Team Name'),
+                autofocus: true,
+              ),
+              TextField(
+                controller: budgetController,
+                decoration: const InputDecoration(labelText: 'Starting Budget'),
+                keyboardType: TextInputType.number,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final name = nameController.text.trim();
+                final budget = int.tryParse(budgetController.text) ?? 100000;
+                if (name.isNotEmpty) {
+                  ref.read(teamProvider.notifier).addTeam(name, budget, 'assets/logos/logo1.png');
+                  Navigator.pop(context);
+                }
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFFD700)),
+              child: const Text('Save', style: TextStyle(color: Colors.black)),
+            ),
+          ],
+        );
+      },
     );
   }
 

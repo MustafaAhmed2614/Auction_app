@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/match_provider.dart';
+import '../providers/team_provider.dart';
 import '../models/match.dart';
 import 'live_scoring_screen.dart';
 
@@ -20,7 +21,8 @@ class MatchScheduleScreen extends ConsumerWidget {
             icon: const Icon(Icons.auto_awesome),
             tooltip: 'Generate Schedule',
             onPressed: () {
-              ref.read(matchProvider.notifier).generateSchedule();
+              final teams = ref.read(teamProvider);
+              ref.read(matchProvider.notifier).generateSchedule(teams);
             },
           )
         ],
@@ -36,7 +38,10 @@ class MatchScheduleScreen extends ConsumerWidget {
         child: matches.isEmpty
             ? Center(
                 child: ElevatedButton(
-                  onPressed: () => ref.read(matchProvider.notifier).generateSchedule(),
+                  onPressed: () {
+                    final teams = ref.read(teamProvider);
+                    ref.read(matchProvider.notifier).generateSchedule(teams);
+                  },
                   style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFFD700)),
                   child: const Text('Generate Tournament Schedule', style: TextStyle(color: Colors.black)),
                 ),
@@ -46,14 +51,14 @@ class MatchScheduleScreen extends ConsumerWidget {
                 itemCount: matches.length,
                 itemBuilder: (context, index) {
                   final match = matches[index];
-                  return _buildMatchCard(context, match);
+                  return _buildMatchCard(context, match, matches);
                 },
               ),
       ),
     );
   }
 
-  Widget _buildMatchCard(BuildContext context, Match match) {
+  Widget _buildMatchCard(BuildContext context, Match match, List<Match> allMatches) {
     return Card(
       color: Colors.white12,
       margin: const EdgeInsets.only(bottom: 16),
@@ -63,6 +68,15 @@ class MatchScheduleScreen extends ConsumerWidget {
       ),
       child: InkWell(
         onTap: () {
+          if (match.isFinal) {
+            final groupMatches = allMatches.where((m) => !m.isFinal);
+            if (!groupMatches.every((m) => m.isCompleted)) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Finish all group matches before playing the Final!')),
+              );
+              return;
+            }
+          }
           Navigator.push(
             context,
             MaterialPageRoute(builder: (_) => LiveScoringScreen(match: match)),

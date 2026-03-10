@@ -1,36 +1,15 @@
-import 'package:hive/hive.dart';
 import 'team.dart';
 import 'innings.dart';
 
-part 'match.g.dart';
-
-@HiveType(typeId: 4)
-class Match extends HiveObject {
-  @HiveField(0)
+class Match {
   final String id;
-
-  @HiveField(1)
   final Team team1;
-
-  @HiveField(2)
   final Team team2;
-
-  @HiveField(3)
   final int matchNumber;
-
-  @HiveField(4)
   final bool isFinal;
-
-  @HiveField(5)
   bool isCompleted;
-
-  @HiveField(6)
   Innings? firstInnings;
-
-  @HiveField(7)
   Innings? secondInnings;
-
-  @HiveField(8)
   Team? winner;
 
   Match({
@@ -44,4 +23,32 @@ class Match extends HiveObject {
     this.secondInnings,
     this.winner,
   });
+
+  factory Match.fromJson(Map<String, dynamic> json) {
+    return Match(
+      id: json['id'] as String,
+      team1: Team.fromJson(Map<String, dynamic>.from(json['team1'])),
+      team2: Team.fromJson(Map<String, dynamic>.from(json['team2'])),
+      matchNumber: json['matchNumber'] as int,
+      isFinal: json['isFinal'] as bool? ?? false,
+      isCompleted: json['isCompleted'] as bool? ?? false,
+      firstInnings: json['firstInnings'] != null ? Innings.fromJson(Map<String, dynamic>.from(json['firstInnings'])) : null,
+      secondInnings: json['secondInnings'] != null ? Innings.fromJson(Map<String, dynamic>.from(json['secondInnings'])) : null,
+      winner: json['winner'] != null ? Team.fromJson(Map<String, dynamic>.from(json['winner'])) : null,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'team1': team1.toJson(),
+      'team2': team2.toJson(),
+      'matchNumber': matchNumber,
+      'isFinal': isFinal,
+      'isCompleted': isCompleted,
+      'firstInnings': firstInnings?.toJson(),
+      'secondInnings': secondInnings?.toJson(),
+      'winner': winner?.toJson(),
+    };
+  }
 }

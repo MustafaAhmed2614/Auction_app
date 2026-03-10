@@ -1,29 +1,31 @@
-import 'package:hive/hive.dart';
-import 'player.dart';
-
-part 'team.g.dart';
-
-@HiveType(typeId: 0)
-class Team extends HiveObject {
-  @HiveField(0)
+class Team {
   final String id;
-
-  @HiveField(1)
   final String name;
-
-  @HiveField(2)
-  final String logo;
-
-  @HiveField(3)
+  final String logoPath;
   int remainingPoints;
-
-  @HiveField(4)
-  HiveList<Player>? squadPlayers;
 
   Team({
     required this.id,
     required this.name,
-    required this.logo,
-    required this.remainingPoints,
+    required this.logoPath,
+    this.remainingPoints = 100000,
   });
+
+  factory Team.fromJson(Map<String, dynamic> json) {
+    return Team(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      logoPath: json['logoPath'] as String,
+      remainingPoints: json['remainingPoints'] as int? ?? 100000,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'logoPath': logoPath,
+      'remainingPoints': remainingPoints,
+    };
+  }
 }

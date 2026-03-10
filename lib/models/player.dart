@@ -1,25 +1,9 @@
-import 'package:hive/hive.dart';
-
-part 'player.g.dart';
-
-@HiveType(typeId: 1)
-class Player extends HiveObject {
-  @HiveField(0)
+class Player {
   final String id;
-
-  @HiveField(1)
   final String name;
-
-  @HiveField(2)
   final String category;
-
-  @HiveField(3)
   final int basePrice;
-
-  @HiveField(4)
   final String? image;
-
-  @HiveField(5)
   bool isSold;
 
   Player({
@@ -30,4 +14,26 @@ class Player extends HiveObject {
     this.image,
     this.isSold = false,
   });
+
+  factory Player.fromJson(Map<String, dynamic> json) {
+    return Player(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      category: json['category'] as String,
+      basePrice: json['basePrice'] as int,
+      image: json['image'] as String?,
+      isSold: json['isSold'] as bool? ?? false,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'category': category,
+      'basePrice': basePrice,
+      'image': image,
+      'isSold': isSold,
+    };
+  }
 }

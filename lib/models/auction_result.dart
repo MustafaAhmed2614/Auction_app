@@ -1,24 +1,11 @@
-import 'package:hive/hive.dart';
 import 'player.dart';
 import 'team.dart';
 
-part 'auction_result.g.dart';
-
-@HiveType(typeId: 2)
-class AuctionResult extends HiveObject {
-  @HiveField(0)
+class AuctionResult {
   final String id;
-
-  @HiveField(1)
   final Player player;
-
-  @HiveField(2)
   final Team winningTeam;
-
-  @HiveField(3)
   final int finalPrice;
-
-  @HiveField(4)
   final DateTime timestamp;
 
   AuctionResult({
@@ -28,4 +15,24 @@ class AuctionResult extends HiveObject {
     required this.finalPrice,
     required this.timestamp,
   });
+
+  factory AuctionResult.fromJson(Map<String, dynamic> json) {
+    return AuctionResult(
+      id: json['id'] as String,
+      player: Player.fromJson(Map<String, dynamic>.from(json['player'])),
+      winningTeam: Team.fromJson(Map<String, dynamic>.from(json['winningTeam'])),
+      finalPrice: json['finalPrice'] as int,
+      timestamp: DateTime.parse(json['timestamp'] as String),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'player': player.toJson(),
+      'winningTeam': winningTeam.toJson(),
+      'finalPrice': finalPrice,
+      'timestamp': timestamp.toIso8601String(),
+    };
+  }
 }

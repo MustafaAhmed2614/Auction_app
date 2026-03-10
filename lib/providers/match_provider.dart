@@ -1,25 +1,35 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:hive_flutter/hive_flutter.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:uuid/uuid.dart';
 import '../models/match.dart';
 import '../models/team.dart';
+import '../utils/standings_calculator.dart';
 
 class MatchNotifier extends Notifier<List<Match>> {
   @override
   List<Match> build() {
-    final box = Hive.box<Match>('matches');
-    return box.values.toList()..sort((a, b) => a.matchNumber.compareTo(b.matchNumber));
+    _listenToMatches();
+    return [];
   }
 
-  Future<void> generateSchedule() async {
-    final teamsBox = Hive.box<Team>('teams');
-    final teams = teamsBox.values.toList();
+  void _listenToMatches() {
+    FirebaseFirestore.instance.collection('matches').snapshots().listen((snapshot) {
+      final matches = snapshot.docs.map((doc) => Match.fromJson(doc.data())).toList();
+      matches.sort((a, b) => a.matchNumber.compareTo(b.matchNumber));
+      state = matches;
+    });
+  }
+
+  Future<void> generateSchedule(List<Team> teams) async {
     if (teams.length < 4) return; // Expecting exactly 4 teams
 
-    final matchBox = Hive.box<Match>('matches');
+    final matchCollection = FirebaseFirestore.instance.collection('matches');
     
     // Clear existing schedule if any
-    await matchBox.clear();
+    final existingMatches = await matchCollection.get();
+    for (var doc in existingMatches.docs) {
+      await doc.reference.delete();
+    }
 
     // Generate Round Robin (6 matches)
     int matchNum = 1;
@@ -31,7 +41,7 @@ class MatchNotifier extends Notifier<List<Match>> {
            team2: teams[j],
            matchNumber: matchNum++,
          );
-         await matchBox.put(m.id, m);
+         await matchCollection.doc(m.id).set(m.toJson());
        }
     }
 
@@ -43,15 +53,39 @@ class MatchNotifier extends Notifier<List<Match>> {
       matchNumber: matchNum,
       isFinal: true,
     );
-    await matchBox.put(finalMatch.id, finalMatch);
-
-    state = matchBox.values.toList()..sort((a, b) => a.matchNumber.compareTo(b.matchNumber));
+    await matchCollection.doc(finalMatch.id).set(finalMatch.toJson());
   }
 
-  Future<void> updateMatchResult(String matchId, Match updatedMatch) async {
-     final box = Hive.box<Match>('matches');
-     await box.put(matchId, updatedMatch);
-     state = box.values.toList()..sort((a, b) => a.matchNumber.compareTo(b.matchNumber));
+  Future<void> updateMatchResult(String matchId, Match updatedMatch, List<Team> allTeams) async {
+     await FirebaseFirestore.instance.collection('matches').doc(matchId).update(updatedMatch.toJson());
+     await _evaluateFinalMatch(allTeams);
+  }
+
+  Future<void> _evaluateFinalMatch(List<Team> allTeams) async {
+    // Fetch latest matches to ensure we have the most up-to-date state
+    final snapshot = await FirebaseFirestore.instance.collection('matches').get();
+    final allMatches = snapshot.docs.map((doc) => Match.fromJson(doc.data())).toList();
+
+    final groupMatches = allMatches.where((m) => !m.isFinal).toList();
+    if (groupMatches.isEmpty) return;
+
+    // Check if every group match is completed
+    if (groupMatches.every((m) => m.isCompleted)) {
+      final finalMatch = allMatches.firstWhere((m) => m.isFinal);
+      final standings = calculateStandings(allMatches, allTeams);
+
+      if (standings.length >= 2) {
+        final top1 = standings[0].team;
+        final top2 = standings[1].team;
+
+        if (finalMatch.team1.id != top1.id || finalMatch.team2.id != top2.id) {
+          await FirebaseFirestore.instance.collection('matches').doc(finalMatch.id).update({
+            'team1': top1.toJson(),
+            'team2': top2.toJson(),
+          });
+        }
+      }
+    }
   }
 }
 

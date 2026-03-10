@@ -1,17 +1,23 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:hive_flutter/hive_flutter.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:uuid/uuid.dart';
 import '../models/player.dart';
 
 class PlayerNotifier extends Notifier<List<Player>> {
   @override
   List<Player> build() {
-    final box = Hive.box<Player>('players');
-    return box.values.toList();
+    _listenToPlayers();
+    return [];
+  }
+
+  void _listenToPlayers() {
+     FirebaseFirestore.instance.collection('players').snapshots().listen((snapshot) {
+      final players = snapshot.docs.map((doc) => Player.fromJson(doc.data())).toList();
+      state = players;
+    });
   }
 
   Future<void> addPlayer(String name, String category, int basePrice, String? image) async {
-    final box = Hive.box<Player>('players');
     final newPlayer = Player(
       id: const Uuid().v4(),
       name: name,
@@ -19,34 +25,19 @@ class PlayerNotifier extends Notifier<List<Player>> {
       basePrice: basePrice,
       image: image,
     );
-    await box.put(newPlayer.id, newPlayer);
-    state = box.values.toList();
+    await FirebaseFirestore.instance.collection('players').doc(newPlayer.id).set(newPlayer.toJson());
   }
 
   Future<void> markAsSold(String id) async {
-    final box = Hive.box<Player>('players');
-    final player = box.get(id);
-    if (player != null) {
-      player.isSold = true;
-      await player.save();
-      state = box.values.toList();
-    }
+    await FirebaseFirestore.instance.collection('players').doc(id).update({'isSold': true});
   }
 
   Future<void> markAsUnsold(String id) async {
-    final box = Hive.box<Player>('players');
-    final player = box.get(id);
-    if (player != null) {
-      player.isSold = false;
-      await player.save();
-      state = box.values.toList();
-    }
+    await FirebaseFirestore.instance.collection('players').doc(id).update({'isSold': false});
   }
 
   Future<void> deletePlayer(String id) async {
-    final box = Hive.box<Player>('players');
-    await box.delete(id);
-    state = box.values.toList();
+    await FirebaseFirestore.instance.collection('players').doc(id).delete();
   }
 }
 

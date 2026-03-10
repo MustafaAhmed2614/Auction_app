@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/match_provider.dart';
+import '../providers/team_provider.dart';
 import '../models/match.dart';
 import '../models/innings.dart';
 
@@ -48,7 +49,7 @@ class _LiveScoringScreenState extends ConsumerState<LiveScoringScreen> {
       currentInnings.ballsBowled++;
       _checkInningsStatus();
     });
-    ref.read(matchProvider.notifier).updateMatchResult(widget.match.id, widget.match);
+    ref.read(matchProvider.notifier).updateMatchResult(widget.match.id, widget.match, ref.read(teamProvider));
   }
 
   void _addExtra(int runs) {
@@ -57,7 +58,7 @@ class _LiveScoringScreenState extends ConsumerState<LiveScoringScreen> {
      setState(() {
        currentInnings.runs += runs; // Wide/No-ball doesn't count as a legal ball
      });
-     ref.read(matchProvider.notifier).updateMatchResult(widget.match.id, widget.match);
+     ref.read(matchProvider.notifier).updateMatchResult(widget.match.id, widget.match, ref.read(teamProvider));
   }
 
   void _addWicket() {
@@ -68,7 +69,7 @@ class _LiveScoringScreenState extends ConsumerState<LiveScoringScreen> {
       currentInnings.ballsBowled++;
       _checkInningsStatus();
     });
-    ref.read(matchProvider.notifier).updateMatchResult(widget.match.id, widget.match);
+    ref.read(matchProvider.notifier).updateMatchResult(widget.match.id, widget.match, ref.read(teamProvider));
   }
 
   void _checkInningsStatus() {

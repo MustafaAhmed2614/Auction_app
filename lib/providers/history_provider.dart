@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:hive_flutter/hive_flutter.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:uuid/uuid.dart';
 import '../models/auction_result.dart';
 import '../models/player.dart';
@@ -8,12 +8,19 @@ import '../models/team.dart';
 class HistoryNotifier extends Notifier<List<AuctionResult>> {
   @override
   List<AuctionResult> build() {
-    final box = Hive.box<AuctionResult>('auction_results');
-    return box.values.toList()..sort((a, b) => b.timestamp.compareTo(a.timestamp));
+    _listenToHistory();
+    return [];
+  }
+
+  void _listenToHistory() {
+    FirebaseFirestore.instance.collection('auction_results').snapshots().listen((snapshot) {
+      final results = snapshot.docs.map((doc) => AuctionResult.fromJson(doc.data())).toList();
+      results.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+      state = results;
+    });
   }
 
   Future<void> addResult(Player player, Team winningTeam, int finalPrice) async {
-    final box = Hive.box<AuctionResult>('auction_results');
     final result = AuctionResult(
       id: const Uuid().v4(),
       player: player,
@@ -21,14 +28,11 @@ class HistoryNotifier extends Notifier<List<AuctionResult>> {
       finalPrice: finalPrice,
       timestamp: DateTime.now(),
     );
-    await box.put(result.id, result);
-    state = box.values.toList()..sort((a, b) => b.timestamp.compareTo(a.timestamp));
+    await FirebaseFirestore.instance.collection('auction_results').doc(result.id).set(result.toJson());
   }
 
   Future<void> removeResult(String resultId) async {
-    final box = Hive.box<AuctionResult>('auction_results');
-    await box.delete(resultId);
-    state = box.values.toList()..sort((a, b) => b.timestamp.compareTo(a.timestamp));
+    await FirebaseFirestore.instance.collection('auction_results').doc(resultId).delete();
   }
 }
 
