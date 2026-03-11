@@ -17,7 +17,10 @@ class HomeScreen extends StatelessWidget {
         width: double.infinity,
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFF1B5E20), Color(0xFF0D47A1)], // Green to Dark Blue
+            colors: [
+              Color(0xFF1B5E20),
+              Color(0xFF0D47A1),
+            ], // Green to Dark Blue
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -29,135 +32,175 @@ class HomeScreen extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-              // Logo placeholder
-              Container(
-                width: 150,
-                height: 150,
-                decoration: BoxDecoration(
-                  color: Colors.white24,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: const Color(0xFFFFD700), width: 3), // Gold border
-                ),
-                child: const Center(
-                  child: Icon(Icons.sports_cricket, size: 80, color: Color(0xFFFFD700)),
-                ),
-              ),
-              const SizedBox(height: 24),
-              const Text(
-                'BPL',
-                style: TextStyle(
-                  fontSize: 64,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                  letterSpacing: 4,
-                ),
-              ),
-              const Text(
-                'Bihari Premier League',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w500,
-                  color: Color(0xFFFFD700),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                decoration: BoxDecoration(
-                  color: Colors.white24,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: const Text(
-                  'SEASON 3',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                    letterSpacing: 2,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 60),
-              _buildMenuButton(
-                context,
-                title: 'Start Auction',
-                icon: Icons.gavel,
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const AuctionScreen()),
-                ),
-                isPrimary: true,
-              ),
-              const SizedBox(height: 16),
-              _buildMenuButton(
-                context,
-                title: 'View Teams',
-                icon: Icons.groups,
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const TeamsScreen()),
-                ),
-              ),
-              const SizedBox(height: 16),
-              _buildMenuButton(
-                context,
-                title: 'Players List',
-                icon: Icons.list_alt,
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const PlayerManagementScreen()),
-                ),
-              ),
-              const SizedBox(height: 24),
-              const Text('TOURNAMENT', style: TextStyle(color: Colors.white54, letterSpacing: 2, fontSize: 12, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 12),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  _buildSmallButton(
-                    context,
-                    title: 'Schedule',
-                    icon: Icons.calendar_month,
-                    onTap: () => Navigator.push(
-                      context, MaterialPageRoute(builder: (_) => const MatchScheduleScreen()),
+                  // Logo placeholder
+                  Container(
+                    width: 150,
+                    height: 150,
+                    decoration: BoxDecoration(
+                      color: Colors.white24,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: const Color(0xFFFFD700),
+                        width: 3,
+                      ), // Gold border
+                    ),
+                    child: const Center(
+                      child: Icon(
+                        Icons.sports_cricket,
+                        size: 80,
+                        color: Color(0xFFFFD700),
+                      ),
                     ),
                   ),
-                  const SizedBox(width: 16),
-                  _buildSmallButton(
-                    context,
-                    title: 'Standings',
-                    icon: Icons.format_list_numbered,
-                    onTap: () => Navigator.push(
-                      context, MaterialPageRoute(builder: (_) => const PointsTableScreen()),
+                  const SizedBox(height: 24),
+                  const Text(
+                    'Auction',
+                    style: TextStyle(
+                      fontSize: 64,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      letterSpacing: 4,
                     ),
                   ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              const Text('AUCTION HISTORY', style: TextStyle(color: Colors.white54, letterSpacing: 2, fontSize: 12, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 12),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  _buildSmallButton(
-                    context,
-                    title: 'History',
-                    icon: Icons.history,
-                    onTap: () => Navigator.push(
-                      context, MaterialPageRoute(builder: (_) => const AuctionHistoryScreen()),
+                  const Text(
+                    'Auction Mobile Application',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFFFFD700),
                     ),
                   ),
-                  const SizedBox(width: 16),
-                  _buildSmallButton(
-                    context,
-                    title: 'Stats',
-                    icon: Icons.bar_chart,
-                    onTap: () => Navigator.push(
-                      context, MaterialPageRoute(builder: (_) => const StatisticsScreen()),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white24,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Text(
+                      'SEASON 3',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        letterSpacing: 2,
+                      ),
                     ),
                   ),
-                ],
-              ),
+                  const SizedBox(height: 60),
+                  _buildMenuButton(
+                    context,
+                    title: 'Start Auction',
+                    icon: Icons.gavel,
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const AuctionScreen()),
+                    ),
+                    isPrimary: true,
+                  ),
+                  const SizedBox(height: 16),
+                  _buildMenuButton(
+                    context,
+                    title: 'View Teams',
+                    icon: Icons.groups,
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const TeamsScreen()),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  _buildMenuButton(
+                    context,
+                    title: 'Players List',
+                    icon: Icons.list_alt,
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const PlayerManagementScreen(),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  const Text(
+                    'TOURNAMENT',
+                    style: TextStyle(
+                      color: Colors.white54,
+                      letterSpacing: 2,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      _buildSmallButton(
+                        context,
+                        title: 'Schedule',
+                        icon: Icons.calendar_month,
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const MatchScheduleScreen(),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      _buildSmallButton(
+                        context,
+                        title: 'Standings',
+                        icon: Icons.format_list_numbered,
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const PointsTableScreen(),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'AUCTION HISTORY',
+                    style: TextStyle(
+                      color: Colors.white54,
+                      letterSpacing: 2,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      _buildSmallButton(
+                        context,
+                        title: 'History',
+                        icon: Icons.history,
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const AuctionHistoryScreen(),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      _buildSmallButton(
+                        context,
+                        title: 'Stats',
+                        icon: Icons.bar_chart,
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const StatisticsScreen(),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -167,7 +210,12 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSmallButton(BuildContext context, {required String title, required IconData icon, required VoidCallback onTap}) {
+  Widget _buildSmallButton(
+    BuildContext context, {
+    required String title,
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -184,7 +232,14 @@ class HomeScreen extends StatelessWidget {
             children: [
               Icon(icon, color: Colors.white, size: 20),
               const SizedBox(width: 8),
-              Text(title, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+              Text(
+                title,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ],
           ),
         ),
@@ -220,7 +275,7 @@ class HomeScreen extends StatelessWidget {
                         color: const Color(0xFFFFD700).withValues(alpha: 0.3),
                         blurRadius: 10,
                         offset: const Offset(0, 4),
-                      )
+                      ),
                     ]
                   : null,
             ),
