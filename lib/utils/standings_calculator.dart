@@ -9,7 +9,7 @@ class TeamStats {
   int tied = 0;
   int get points => (won * 2) + (tied * 1);
   double nrr = 0.0;
-  
+
   // NRR Calculation components
   int totalRunsScored = 0;
   double totalOversFaced = 0.0;
@@ -33,7 +33,7 @@ List<TeamStats> calculateStandings(List<Match> matches, List<Team> teams) {
 
     final inn1 = match.firstInnings!;
     final inn2 = match.secondInnings!;
-    
+
     // Assign stats targets
     final t1Stat = statsMap[inn1.battingTeam.id]!;
     final t2Stat = statsMap[inn2.battingTeam.id]!;
@@ -54,8 +54,8 @@ List<TeamStats> calculateStandings(List<Match> matches, List<Team> teams) {
     }
 
     // Accumulate NRR components
-    double inn1Faced = inn1.wickets == 10 ? 5.0 : inn1.overs; 
-    double inn2Faced = inn2.wickets == 10 ? 5.0 : inn2.overs;
+    double inn1Faced = inn1.wickets == 10 ? 5.0 : inn1.decimalOvers;
+    double inn2Faced = inn2.wickets == 10 ? 5.0 : inn2.decimalOvers;
 
     t1Stat.totalRunsScored += inn1.runs;
     t1Stat.totalOversFaced += inn1Faced;
@@ -70,8 +70,12 @@ List<TeamStats> calculateStandings(List<Match> matches, List<Team> teams) {
 
   // Calculate final NRR
   for (var stat in statsMap.values) {
-    double runRateFor = stat.totalOversFaced > 0 ? stat.totalRunsScored / stat.totalOversFaced : 0.0;
-    double runRateAgainst = stat.totalOversBowled > 0 ? stat.totalRunsConceded / stat.totalOversBowled : 0.0;
+    double runRateFor = stat.totalOversFaced > 0
+        ? stat.totalRunsScored / stat.totalOversFaced
+        : 0.0;
+    double runRateAgainst = stat.totalOversBowled > 0
+        ? stat.totalRunsConceded / stat.totalOversBowled
+        : 0.0;
     stat.nrr = runRateFor - runRateAgainst;
   }
 
