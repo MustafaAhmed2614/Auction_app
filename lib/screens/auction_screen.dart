@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:confetti/confetti.dart';
 // import 'package:audioplayers/audioplayers.dart'; // optional audio
+import '../providers/auth_provider.dart';
 import '../providers/auction_provider.dart';
 import '../providers/player_provider.dart';
 import '../providers/team_provider.dart';
+import '../providers/history_provider.dart';
 import '../models/player.dart';
 import '../models/team.dart';
 
@@ -32,33 +34,40 @@ class _AuctionScreenState extends ConsumerState<AuctionScreen> {
     // await _audioPlayer.play(AssetSource('bid_sound.mp3'));
   }*/
 
-  Future<void> _resolveAuction(AuctionState state) async {
-    if (state.currentPlayer == null) return;
+  void _resolveAuction(AuctionState state) {
+    if (state.currentPlayer != null && state.leadingTeam != null) {
+      // Auction won
+      final winningTeam = state.leadingTeam!;
+      final price = state.currentBid;
+      final player = state.currentPlayer!;
 
-    final result = await ref
-        .read(auctionProvider.notifier)
-        .resolveAuctionResultIfNeeded();
-    if (!mounted || !result.handled) return;
+      ref
+          .read(teamProvider.notifier)
+          .updateTeamPoints(winningTeam.id, winningTeam.remainingPoints, price);
+      ref
+          .read(teamProvider.notifier)
+          .addPlayerToSquad(winningTeam.id, player.id);
+      ref.read(playerProvider.notifier).markAsSold(player.id);
+      ref.read(historyProvider.notifier).addResult(player, winningTeam, price);
 
-    if (result.sold) {
       _confettiController.play();
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            '${result.playerName} SOLD to ${result.teamName} for ${result.finalPrice}!',
+            '${player.name} SOLD to ${winningTeam.name} for $price!',
           ),
           backgroundColor: Colors.green,
         ),
       );
-      return;
+    } else if (state.currentPlayer != null && state.leadingTeam == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Player UNSOLD!'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Player UNSOLD!'),
-        backgroundColor: Colors.red,
-      ),
-    );
   }
 
   @override
@@ -66,9 +75,13 @@ class _AuctionScreenState extends ConsumerState<AuctionScreen> {
     final unsoldPlayers = ref.watch(unsoldPlayersProvider);
     final auctionState = ref.watch(auctionProvider);
     final teams = ref.watch(teamProvider);
+    final isAdmin = ref.watch(isAdminProvider);
+    final currentUserTeamId = ref.watch(currentUserTeamIdProvider);
 
     ref.listen<AuctionState>(auctionProvider, (previous, next) {
-      if (previous?.isAuctionActive == true && !next.isAuctionActive) {
+      if (isAdmin &&
+          previous?.isAuctionActive == true &&
+          !next.isAuctionActive) {
         _resolveAuction(next);
       }
     });
@@ -78,10 +91,12 @@ class _AuctionScreenState extends ConsumerState<AuctionScreen> {
         title: const Text('Live Auction'),
         backgroundColor: const Color(0xFF1B5E20),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () => ref.read(auctionProvider.notifier).resetAuction(),
-          ),
+          if (isAdmin)
+            IconButton(
+              icon: const Icon(Icons.refresh),
+              onPressed: () =>
+                  ref.read(auctionProvider.notifier).resetAuction(),
+            ),
         ],
       ),
       body: Stack(
@@ -97,8 +112,16 @@ class _AuctionScreenState extends ConsumerState<AuctionScreen> {
             child:
                 auctionState.isAuctionActive ||
                     auctionState.currentPlayer != null
-                ? _buildActiveAuction(context, auctionState, teams)
-                : _buildPlayerSelection(context, unsoldPlayers),
+              ? _buildActiveAuction(
+                context,
+                auctionState,
+                teams,
+                isAdmin,
+                currentUserTeamId,
+                )
+                : isAdmin
+                ? _buildPlayerSelection(context, unsoldPlayers)
+                : _buildWaitingForAdmin(),
           ),
           Align(
             alignment: Alignment.topCenter,
@@ -116,6 +139,19 @@ class _AuctionScreenState extends ConsumerState<AuctionScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildWaitingForAdmin() {
+    return const Center(
+      child: Padding(
+        padding: EdgeInsets.all(24),
+        child: Text(
+          'Waiting for admin to start the next auction...',
+          textAlign: TextAlign.center,
+          style: TextStyle(color: Colors.white, fontSize: 20),
+        ),
       ),
     );
   }
@@ -197,6 +233,8 @@ class _AuctionScreenState extends ConsumerState<AuctionScreen> {
     BuildContext context,
     AuctionState state,
     List<Team> teams,
+    bool isAdmin,
+    String? currentUserTeamId,
   ) {
     final player = state.currentPlayer!;
 
@@ -295,6 +333,22 @@ class _AuctionScreenState extends ConsumerState<AuctionScreen> {
 
           const SizedBox(height: 16),
 
+          if (!isAdmin && currentUserTeamId == null)
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.red.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.redAccent),
+              ),
+              child: const Text(
+                'Your account has no team assigned yet. Ask admin to set users/{uid}.teamId in Firestore.',
+                style: TextStyle(color: Colors.white),
+                textAlign: TextAlign.center,
+              ),
+            ),
+
           // Bidding interface for 4 teams
           GridView.builder(
             shrinkWrap: true,
@@ -309,11 +363,16 @@ class _AuctionScreenState extends ConsumerState<AuctionScreen> {
             itemCount: teams.length,
             itemBuilder: (context, index) {
               final team = teams[index];
-              return _buildTeamBiddingPanel(team, state);
+              return _buildTeamBiddingPanel(
+                team,
+                state,
+                isAdmin,
+                currentUserTeamId,
+              );
             },
           ),
 
-          if (!state.isAuctionActive && state.currentPlayer != null)
+          if (isAdmin && !state.isAuctionActive && state.currentPlayer != null)
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: ElevatedButton(
@@ -334,14 +393,23 @@ class _AuctionScreenState extends ConsumerState<AuctionScreen> {
     );
   }
 
-  Widget _buildTeamBiddingPanel(Team team, AuctionState state) {
+  Widget _buildTeamBiddingPanel(
+    Team team,
+    AuctionState state,
+    bool isAdmin,
+    String? currentUserTeamId,
+  ) {
     bool isLeading = state.leadingTeam?.id == team.id;
     final nextBidAmount = state.currentBid + 2000;
     final rawLivePurse =
         team.remainingPoints - (isLeading ? state.currentBid : 0);
     final livePurse = rawLivePurse < 0 ? 0 : rawLivePurse;
+    final canControlThisTeam =
+        isAdmin ||
+        (currentUserTeamId != null && currentUserTeamId == team.id);
     bool canBid =
         state.isAuctionActive &&
+        canControlThisTeam &&
         !isLeading &&
         team.remainingPoints >= nextBidAmount;
 
@@ -369,6 +437,15 @@ class _AuctionScreenState extends ConsumerState<AuctionScreen> {
             ),
             textAlign: TextAlign.center,
           ),
+          if (canControlThisTeam && !isAdmin)
+            const Text(
+              'YOUR TEAM',
+              style: TextStyle(
+                color: Color(0xFFFFD700),
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           Text(
             'Live Purse: $livePurse pts',
             style: TextStyle(

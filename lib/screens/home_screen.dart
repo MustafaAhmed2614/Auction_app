@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/auth_provider.dart';
 import 'auction_screen.dart';
 import 'teams_screen.dart';
 import 'history_screen.dart';
@@ -6,13 +8,30 @@ import 'statistics_screen.dart';
 import 'match_schedule_screen.dart';
 import 'points_table_screen.dart';
 import 'player_management_screen.dart';
+import 'admin_user_management_screen.dart';
+import 'team_owner_panel_screen.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isAdmin = ref.watch(isAdminProvider);
+    final hasAssignedTeam = ref.watch(currentUserTeamIdProvider) != null;
+
     return Scaffold(
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF1B5E20),
+        title: Text(isAdmin ? 'Admin Panel' : 'Viewer Panel'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () async {
+              await ref.read(firebaseAuthProvider).signOut();
+            },
+          ),
+        ],
+      ),
       body: Container(
         width: double.infinity,
         decoration: const BoxDecoration(
@@ -93,7 +112,7 @@ class HomeScreen extends StatelessWidget {
                   const SizedBox(height: 60),
                   _buildMenuButton(
                     context,
-                    title: 'Start Auction',
+                    title: isAdmin ? 'Start Auction' : 'Live Auction',
                     icon: Icons.gavel,
                     onTap: () => Navigator.push(
                       context,
@@ -114,7 +133,7 @@ class HomeScreen extends StatelessWidget {
                   const SizedBox(height: 16),
                   _buildMenuButton(
                     context,
-                    title: 'Players List',
+                    title: isAdmin ? 'Manage Players' : 'Players List',
                     icon: Icons.list_alt,
                     onTap: () => Navigator.push(
                       context,
@@ -123,6 +142,35 @@ class HomeScreen extends StatelessWidget {
                       ),
                     ),
                   ),
+                  if (isAdmin) ...[
+                    const SizedBox(height: 16),
+                    _buildMenuButton(
+                      context,
+                      title: 'Manage Users & Teams',
+                      icon: Icons.admin_panel_settings,
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const AdminUserManagementScreen(),
+                        ),
+                      ),
+                    ),
+                  ] else ...[
+                    const SizedBox(height: 16),
+                    _buildMenuButton(
+                      context,
+                      title: hasAssignedTeam
+                          ? 'Team Owner Panel'
+                          : 'Team Panel (Unassigned)',
+                      icon: Icons.dashboard,
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const TeamOwnerPanelScreen(),
+                        ),
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 24),
                   const Text(
                     'TOURNAMENT',

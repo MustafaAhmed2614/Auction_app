@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/auth_provider.dart';
 import '../providers/team_provider.dart';
 import '../models/team.dart';
 import 'squad_screen.dart';
@@ -10,6 +11,7 @@ class TeamsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final teams = ref.watch(teamProvider);
+    final isAdmin = ref.watch(isAdminProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -29,6 +31,9 @@ class TeamsScreen extends ConsumerWidget {
           itemCount: teams.length,
           itemBuilder: (context, index) {
             final team = teams[index];
+            if (!isAdmin) {
+              return _buildTeamCard(context, team);
+            }
             return Dismissible(
               key: Key(team.id),
               direction: DismissDirection.endToStart,
@@ -40,20 +45,22 @@ class TeamsScreen extends ConsumerWidget {
               ),
               onDismissed: (_) {
                 ref.read(teamProvider.notifier).deleteTeam(team.id);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('${team.name} deleted')),
-                );
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(SnackBar(content: Text('${team.name} deleted')));
               },
               child: _buildTeamCard(context, team),
             );
           },
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showAddTeamDialog(context, ref),
-        backgroundColor: const Color(0xFFFFD700),
-        child: const Icon(Icons.add, color: Colors.black),
-      ),
+      floatingActionButton: isAdmin
+          ? FloatingActionButton(
+              onPressed: () => _showAddTeamDialog(context, ref),
+              backgroundColor: const Color(0xFFFFD700),
+              child: const Icon(Icons.add, color: Colors.black),
+            )
+          : null,
     );
   }
 
@@ -84,18 +91,25 @@ class TeamsScreen extends ConsumerWidget {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
+              child: const Text(
+                'Cancel',
+                style: TextStyle(color: Colors.white54),
+              ),
             ),
             ElevatedButton(
               onPressed: () {
                 final name = nameController.text.trim();
                 final budget = int.tryParse(budgetController.text) ?? 100000;
                 if (name.isNotEmpty) {
-                  ref.read(teamProvider.notifier).addTeam(name, budget, 'assets/logos/logo1.png');
+                  ref
+                      .read(teamProvider.notifier)
+                      .addTeam(name, budget, 'assets/logos/logo1.png');
                   Navigator.pop(context);
                 }
               },
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFFD700)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFFFD700),
+              ),
               child: const Text('Save', style: TextStyle(color: Colors.black)),
             ),
           ],
@@ -132,7 +146,11 @@ class TeamsScreen extends ConsumerWidget {
                   color: Colors.white,
                   border: Border.all(color: const Color(0xFFFFD700), width: 2),
                 ),
-                child: const Icon(Icons.shield, color: Color(0xFF1B5E20), size: 30),
+                child: const Icon(
+                  Icons.shield,
+                  color: Color(0xFF1B5E20),
+                  size: 30,
+                ),
               ),
               const SizedBox(width: 16),
               Expanded(

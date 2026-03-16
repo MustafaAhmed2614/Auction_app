@@ -4,6 +4,7 @@ import 'package:uuid/uuid.dart';
 import 'dart:async';
 import '../models/player.dart';
 import '../models/team.dart';
+import '../utils/access_control.dart';
 
 class AuctionState {
   final Player? currentPlayer;
@@ -118,7 +119,9 @@ class AuctionNotifier extends Notifier<AuctionState> {
         .set(newState.toJson());
   }
 
-  void startAuctionForPlayer(Player player) {
+  Future<void> startAuctionForPlayer(Player player) async {
+    if (!await isCurrentUserAdmin()) return;
+
     _timer?.cancel();
     final newState = AuctionState(
       currentPlayer: player,
@@ -131,7 +134,10 @@ class AuctionNotifier extends Notifier<AuctionState> {
     _startTimer();
   }
 
-  void placeBid(Team team, int bidAmount) {
+  Future<void> placeBid(Team team, int bidAmount) async {
+    final canBidForTeam = await canCurrentUserBidForTeam(team.id);
+    if (!canBidForTeam) return;
+
     if (!state.isAuctionActive || state.currentPlayer == null) return;
 
     if (team.remainingPoints < bidAmount) return;
@@ -143,7 +149,11 @@ class AuctionNotifier extends Notifier<AuctionState> {
       timeRemaining: 30,
     );
     _syncState(newState);
-    _startTimer();
+
+    // Keep the timer host on admin device to avoid conflicting timer writers.
+    if (await isCurrentUserAdmin()) {
+      _startTimer();
+    }
   }
 
   void _startTimer() {
@@ -158,7 +168,9 @@ class AuctionNotifier extends Notifier<AuctionState> {
     });
   }
 
-  void resetAuction() {
+  Future<void> resetAuction() async {
+    if (!await isCurrentUserAdmin()) return;
+
     _timer?.cancel();
     _syncState(AuctionState());
   }

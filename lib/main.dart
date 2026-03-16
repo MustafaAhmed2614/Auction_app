@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'screens/home_screen.dart';
+import 'screens/auth_gate_screen.dart';
 import 'firebase_options.dart';
 
 void main() async {
@@ -47,7 +47,7 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
       ),
       home: firebaseReady
-          ? const HomeScreen()
+          ? const AuthGateScreen()
           : FirebaseUnavailableScreen(errorMessage: firebaseError),
     );
   }

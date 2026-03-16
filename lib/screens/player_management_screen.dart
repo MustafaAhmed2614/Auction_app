@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/auth_provider.dart';
 import '../providers/player_provider.dart';
 
 class PlayerManagementScreen extends ConsumerStatefulWidget {
   const PlayerManagementScreen({super.key});
 
   @override
-  ConsumerState<PlayerManagementScreen> createState() => _PlayerManagementScreenState();
+  ConsumerState<PlayerManagementScreen> createState() =>
+      _PlayerManagementScreenState();
 }
 
-class _PlayerManagementScreenState extends ConsumerState<PlayerManagementScreen> {
+class _PlayerManagementScreenState
+    extends ConsumerState<PlayerManagementScreen> {
   final _nameController = TextEditingController();
   String _selectedCategory = 'Silver';
   int _basePrice = 5000;
@@ -23,25 +26,28 @@ class _PlayerManagementScreenState extends ConsumerState<PlayerManagementScreen>
 
   void _addPlayer() {
     if (_nameController.text.trim().isEmpty) return;
-    ref.read(playerProvider.notifier).addPlayer(
+    ref
+        .read(playerProvider.notifier)
+        .addPlayer(
           _nameController.text.trim(),
           _selectedCategory,
           _basePrice,
           null, // photo placeholder
         );
     _nameController.clear();
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Player added successfully!')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Player added successfully!')));
   }
 
   @override
   Widget build(BuildContext context) {
     final players = ref.watch(playerProvider);
+    final isAdmin = ref.watch(isAdminProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Manage Players'),
+        title: Text(isAdmin ? 'Manage Players' : 'Players List'),
         backgroundColor: const Color(0xFF1B5E20),
       ),
       body: Container(
@@ -54,7 +60,15 @@ class _PlayerManagementScreenState extends ConsumerState<PlayerManagementScreen>
         ),
         child: Column(
           children: [
-            _buildAddPlayerForm(),
+            if (isAdmin) _buildAddPlayerForm(),
+            if (!isAdmin)
+              const Padding(
+                padding: EdgeInsets.all(12),
+                child: Text(
+                  'Only admin can add or delete players.',
+                  style: TextStyle(color: Colors.white70),
+                ),
+              ),
             Expanded(
               child: ListView.builder(
                 itemCount: players.length,
@@ -63,32 +77,71 @@ class _PlayerManagementScreenState extends ConsumerState<PlayerManagementScreen>
                   return ListTile(
                     leading: CircleAvatar(
                       backgroundColor: _getCategoryColor(player.category),
-                      child: Text(player.name[0], style: const TextStyle(color: Colors.white)),
+                      child: Text(
+                        player.name[0],
+                        style: const TextStyle(color: Colors.white),
+                      ),
                     ),
                     title: Row(
                       children: [
-                        Text('${index + 1}. ${player.name}', style: const TextStyle(color: Colors.white)),
+                        Text(
+                          '${index + 1}. ${player.name}',
+                          style: const TextStyle(color: Colors.white),
+                        ),
                         const SizedBox(width: 8),
                         if (player.isSold)
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(color: Colors.red.withValues(alpha: 0.8), borderRadius: BorderRadius.circular(4)),
-                            child: const Text('SOLD', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.red.withValues(alpha: 0.8),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: const Text(
+                              'SOLD',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           )
                         else
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(color: Colors.green.withValues(alpha: 0.8), borderRadius: BorderRadius.circular(4)),
-                            child: const Text('AVAILABLE', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
-                          )
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.green.withValues(alpha: 0.8),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: const Text(
+                              'AVAILABLE',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
                       ],
                     ),
-                    subtitle: Text('${player.category} • Base: ${player.basePrice}', style: const TextStyle(color: Colors.white70)),
+                    subtitle: Text(
+                      '${player.category} • Base: ${player.basePrice}',
+                      style: const TextStyle(color: Colors.white70),
+                    ),
                     trailing: IconButton(
                       icon: const Icon(Icons.delete, color: Colors.redAccent),
-                      onPressed: () {
-                        ref.read(playerProvider.notifier).deletePlayer(player.id);
-                      },
+                      onPressed: isAdmin
+                          ? () {
+                              ref
+                                  .read(playerProvider.notifier)
+                                  .deletePlayer(player.id);
+                            }
+                          : null,
                     ),
                   );
                 },
@@ -112,8 +165,12 @@ class _PlayerManagementScreenState extends ConsumerState<PlayerManagementScreen>
             decoration: const InputDecoration(
               labelText: 'Player Name',
               labelStyle: TextStyle(color: Colors.white70),
-              enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.white30)),
-              focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Color(0xFFFFD700))),
+              enabledBorder: OutlineInputBorder(
+                borderSide: BorderSide(color: Colors.white30),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderSide: BorderSide(color: Color(0xFFFFD700)),
+              ),
             ),
           ),
           const SizedBox(height: 16),
@@ -127,7 +184,9 @@ class _PlayerManagementScreenState extends ConsumerState<PlayerManagementScreen>
                   decoration: const InputDecoration(
                     labelText: 'Category',
                     labelStyle: TextStyle(color: Colors.white70),
-                    enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.white30)),
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.white30),
+                    ),
                   ),
                   items: _categoryPrices.keys.map((String category) {
                     return DropdownMenuItem<String>(
@@ -151,7 +210,10 @@ class _PlayerManagementScreenState extends ConsumerState<PlayerManagementScreen>
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFFFD700),
                   foregroundColor: Colors.black,
-                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 16,
+                    horizontal: 24,
+                  ),
                 ),
                 child: const Text('Add Player'),
               ),
@@ -164,11 +226,16 @@ class _PlayerManagementScreenState extends ConsumerState<PlayerManagementScreen>
 
   Color _getCategoryColor(String category) {
     switch (category) {
-      case 'Platinum': return Colors.deepPurple;
-      case 'Gold': return const Color(0xFFFFD700);
-      case 'Silver': return Colors.grey;
-      case 'Emerging': return Colors.greenAccent;
-      default: return Colors.blue;
+      case 'Platinum':
+        return Colors.deepPurple;
+      case 'Gold':
+        return const Color(0xFFFFD700);
+      case 'Silver':
+        return Colors.grey;
+      case 'Emerging':
+        return Colors.greenAccent;
+      default:
+        return Colors.blue;
     }
   }
 }

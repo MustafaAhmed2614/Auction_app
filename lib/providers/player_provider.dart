@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:uuid/uuid.dart';
 import '../models/player.dart';
+import '../utils/access_control.dart';
 
 class PlayerNotifier extends Notifier<List<Player>> {
   @override
@@ -11,13 +12,24 @@ class PlayerNotifier extends Notifier<List<Player>> {
   }
 
   void _listenToPlayers() {
-     FirebaseFirestore.instance.collection('players').snapshots().listen((snapshot) {
-      final players = snapshot.docs.map((doc) => Player.fromJson(doc.data())).toList();
+    FirebaseFirestore.instance.collection('players').snapshots().listen((
+      snapshot,
+    ) {
+      final players = snapshot.docs
+          .map((doc) => Player.fromJson(doc.data()))
+          .toList();
       state = players;
     });
   }
 
-  Future<void> addPlayer(String name, String category, int basePrice, String? image) async {
+  Future<void> addPlayer(
+    String name,
+    String category,
+    int basePrice,
+    String? image,
+  ) async {
+    if (!await isCurrentUserAdmin()) return;
+
     final newPlayer = Player(
       id: const Uuid().v4(),
       name: name,
@@ -25,18 +37,31 @@ class PlayerNotifier extends Notifier<List<Player>> {
       basePrice: basePrice,
       image: image,
     );
-    await FirebaseFirestore.instance.collection('players').doc(newPlayer.id).set(newPlayer.toJson());
+    await FirebaseFirestore.instance
+        .collection('players')
+        .doc(newPlayer.id)
+        .set(newPlayer.toJson());
   }
 
   Future<void> markAsSold(String id) async {
-    await FirebaseFirestore.instance.collection('players').doc(id).update({'isSold': true});
+    if (!await isCurrentUserAdmin()) return;
+
+    await FirebaseFirestore.instance.collection('players').doc(id).update({
+      'isSold': true,
+    });
   }
 
   Future<void> markAsUnsold(String id) async {
-    await FirebaseFirestore.instance.collection('players').doc(id).update({'isSold': false});
+    if (!await isCurrentUserAdmin()) return;
+
+    await FirebaseFirestore.instance.collection('players').doc(id).update({
+      'isSold': false,
+    });
   }
 
   Future<void> deletePlayer(String id) async {
+    if (!await isCurrentUserAdmin()) return;
+
     await FirebaseFirestore.instance.collection('players').doc(id).delete();
   }
 }
