@@ -111,7 +111,8 @@ class AuctionNotifier extends Notifier<AuctionState> {
   }
 
   Future<void> placeBid(Team team, int bidAmount) async {
-    if (!await isCurrentUserAdmin()) return;
+    final canBidForTeam = await canCurrentUserBidForTeam(team.id);
+    if (!canBidForTeam) return;
 
     if (!state.isAuctionActive || state.currentPlayer == null) return;
 
@@ -124,7 +125,11 @@ class AuctionNotifier extends Notifier<AuctionState> {
       timeRemaining: 30,
     );
     _syncState(newState);
-    _startTimer();
+
+    // Keep the timer host on admin device to avoid conflicting timer writers.
+    if (await isCurrentUserAdmin()) {
+      _startTimer();
+    }
   }
 
   void _startTimer() {

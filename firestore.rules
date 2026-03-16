@@ -10,6 +10,26 @@ service cloud.firestore {
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
+    function userTeamId() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.teamId;
+    }
+
+    function isTeamBidder() {
+      return signedIn() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'user' &&
+        userTeamId() is string;
+    }
+
+    function validTeamBidUpdate() {
+      return request.resource.data.currentBid is int &&
+        request.resource.data.currentBid > resource.data.currentBid &&
+        request.resource.data.isAuctionActive == true &&
+        resource.data.isAuctionActive == true &&
+        request.resource.data.timeRemaining == 30 &&
+        request.resource.data.currentPlayer == resource.data.currentPlayer &&
+        request.resource.data.leadingTeam.id == userTeamId();
+    }
+
     match /users/{uid} {
       allow read: if signedIn() && request.auth.uid == uid;
       allow create: if signedIn() && request.auth.uid == uid;
@@ -28,7 +48,9 @@ service cloud.firestore {
 
     match /auction/{docId} {
       allow read: if signedIn();
-      allow write: if isAdmin();
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin() ||
+        (docId == 'current' && isTeamBidder() && validTeamBidUpdate());
     }
 
     match /auction_results/{docId} {

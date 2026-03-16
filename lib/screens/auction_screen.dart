@@ -76,6 +76,7 @@ class _AuctionScreenState extends ConsumerState<AuctionScreen> {
     final auctionState = ref.watch(auctionProvider);
     final teams = ref.watch(teamProvider);
     final isAdmin = ref.watch(isAdminProvider);
+    final currentUserTeamId = ref.watch(currentUserTeamIdProvider);
 
     ref.listen<AuctionState>(auctionProvider, (previous, next) {
       if (isAdmin &&
@@ -111,7 +112,13 @@ class _AuctionScreenState extends ConsumerState<AuctionScreen> {
             child:
                 auctionState.isAuctionActive ||
                     auctionState.currentPlayer != null
-                ? _buildActiveAuction(context, auctionState, teams, isAdmin)
+              ? _buildActiveAuction(
+                context,
+                auctionState,
+                teams,
+                isAdmin,
+                currentUserTeamId,
+                )
                 : isAdmin
                 ? _buildPlayerSelection(context, unsoldPlayers)
                 : _buildWaitingForAdmin(),
@@ -227,6 +234,7 @@ class _AuctionScreenState extends ConsumerState<AuctionScreen> {
     AuctionState state,
     List<Team> teams,
     bool isAdmin,
+    String? currentUserTeamId,
   ) {
     final player = state.currentPlayer!;
 
@@ -325,6 +333,22 @@ class _AuctionScreenState extends ConsumerState<AuctionScreen> {
 
           const SizedBox(height: 16),
 
+          if (!isAdmin && currentUserTeamId == null)
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.red.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.redAccent),
+              ),
+              child: const Text(
+                'Your account has no team assigned yet. Ask admin to set users/{uid}.teamId in Firestore.',
+                style: TextStyle(color: Colors.white),
+                textAlign: TextAlign.center,
+              ),
+            ),
+
           // Bidding interface for 4 teams
           GridView.builder(
             shrinkWrap: true,
@@ -339,7 +363,12 @@ class _AuctionScreenState extends ConsumerState<AuctionScreen> {
             itemCount: teams.length,
             itemBuilder: (context, index) {
               final team = teams[index];
-              return _buildTeamBiddingPanel(team, state, isAdmin);
+              return _buildTeamBiddingPanel(
+                team,
+                state,
+                isAdmin,
+                currentUserTeamId,
+              );
             },
           ),
 
@@ -364,15 +393,23 @@ class _AuctionScreenState extends ConsumerState<AuctionScreen> {
     );
   }
 
-  Widget _buildTeamBiddingPanel(Team team, AuctionState state, bool isAdmin) {
+  Widget _buildTeamBiddingPanel(
+    Team team,
+    AuctionState state,
+    bool isAdmin,
+    String? currentUserTeamId,
+  ) {
     bool isLeading = state.leadingTeam?.id == team.id;
     final nextBidAmount = state.currentBid + 2000;
     final rawLivePurse =
         team.remainingPoints - (isLeading ? state.currentBid : 0);
     final livePurse = rawLivePurse < 0 ? 0 : rawLivePurse;
+    final canControlThisTeam =
+        isAdmin ||
+        (currentUserTeamId != null && currentUserTeamId == team.id);
     bool canBid =
         state.isAuctionActive &&
-        isAdmin &&
+        canControlThisTeam &&
         !isLeading &&
         team.remainingPoints >= nextBidAmount;
 
@@ -400,6 +437,15 @@ class _AuctionScreenState extends ConsumerState<AuctionScreen> {
             ),
             textAlign: TextAlign.center,
           ),
+          if (canControlThisTeam && !isAdmin)
+            const Text(
+              'YOUR TEAM',
+              style: TextStyle(
+                color: Color(0xFFFFD700),
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           Text(
             'Live Purse: $livePurse pts',
             style: TextStyle(
