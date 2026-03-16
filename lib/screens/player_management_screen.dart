@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/auth_provider.dart';
 import '../providers/player_provider.dart';
 
 class PlayerManagementScreen extends ConsumerStatefulWidget {
@@ -38,10 +39,11 @@ class _PlayerManagementScreenState extends ConsumerState<PlayerManagementScreen>
   @override
   Widget build(BuildContext context) {
     final players = ref.watch(playerProvider);
+    final isAdmin = ref.watch(isAdminProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Manage Players'),
+        title: Text(isAdmin ? 'Manage Players' : 'Players List'),
         backgroundColor: const Color(0xFF1B5E20),
       ),
       body: Container(
@@ -54,7 +56,15 @@ class _PlayerManagementScreenState extends ConsumerState<PlayerManagementScreen>
         ),
         child: Column(
           children: [
-            _buildAddPlayerForm(),
+            if (isAdmin) _buildAddPlayerForm(),
+            if (!isAdmin)
+              const Padding(
+                padding: EdgeInsets.all(12),
+                child: Text(
+                  'Only admin can add or delete players.',
+                  style: TextStyle(color: Colors.white70),
+                ),
+              ),
             Expanded(
               child: ListView.builder(
                 itemCount: players.length,
@@ -86,9 +96,13 @@ class _PlayerManagementScreenState extends ConsumerState<PlayerManagementScreen>
                     subtitle: Text('${player.category} • Base: ${player.basePrice}', style: const TextStyle(color: Colors.white70)),
                     trailing: IconButton(
                       icon: const Icon(Icons.delete, color: Colors.redAccent),
-                      onPressed: () {
-                        ref.read(playerProvider.notifier).deletePlayer(player.id);
-                      },
+                      onPressed: isAdmin
+                          ? () {
+                              ref
+                                  .read(playerProvider.notifier)
+                                  .deletePlayer(player.id);
+                            }
+                          : null,
                     ),
                   );
                 },

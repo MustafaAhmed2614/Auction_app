@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/team.dart';
+import '../utils/access_control.dart';
 
 class TeamNotifier extends Notifier<List<Team>> {
   @override
@@ -37,6 +38,8 @@ class TeamNotifier extends Notifier<List<Team>> {
   }
 
   Future<void> updateTeamPoints(String teamId, int previousPoints, int deductedAmount) async {
+    if (!await isCurrentUserAdmin()) return;
+
     final teamRef = FirebaseFirestore.instance.collection('teams').doc(teamId);
     await FirebaseFirestore.instance.runTransaction((transaction) async {
       final snapshot = await transaction.get(teamRef);
@@ -48,6 +51,8 @@ class TeamNotifier extends Notifier<List<Team>> {
   }
 
   Future<void> addTeamPoints(String teamId, int amount) async {
+    if (!await isCurrentUserAdmin()) return;
+
     final teamRef = FirebaseFirestore.instance.collection('teams').doc(teamId);
     await FirebaseFirestore.instance.runTransaction((transaction) async {
       final snapshot = await transaction.get(teamRef);
@@ -59,11 +64,15 @@ class TeamNotifier extends Notifier<List<Team>> {
   }
 
   Future<void> resetTeam(String teamId) async {
+    if (!await isCurrentUserAdmin()) return;
+
     final teamRef = FirebaseFirestore.instance.collection('teams').doc(teamId);
     await teamRef.update({'remainingPoints': 100000});
   }
 
   Future<void> addTeam(String name, int budget, String logoPath) async {
+    if (!await isCurrentUserAdmin()) return;
+
     final newTeam = Team(
       id: 'team_${DateTime.now().millisecondsSinceEpoch}',
       name: name,
@@ -74,10 +83,13 @@ class TeamNotifier extends Notifier<List<Team>> {
   }
 
   Future<void> deleteTeam(String teamId) async {
+    if (!await isCurrentUserAdmin()) return;
+
     await FirebaseFirestore.instance.collection('teams').doc(teamId).delete();
   }
 
   Future<void> addPlayerToSquad(String teamId, String playerId) async {
+      if (!await isCurrentUserAdmin()) return;
       // Logic managed implicitly via History collection
   }
 }

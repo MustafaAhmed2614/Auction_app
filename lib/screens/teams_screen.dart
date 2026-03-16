@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/auth_provider.dart';
 import '../providers/team_provider.dart';
 import '../models/team.dart';
 import 'squad_screen.dart';
@@ -10,6 +11,7 @@ class TeamsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final teams = ref.watch(teamProvider);
+    final isAdmin = ref.watch(isAdminProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -29,6 +31,9 @@ class TeamsScreen extends ConsumerWidget {
           itemCount: teams.length,
           itemBuilder: (context, index) {
             final team = teams[index];
+            if (!isAdmin) {
+              return _buildTeamCard(context, team);
+            }
             return Dismissible(
               key: Key(team.id),
               direction: DismissDirection.endToStart,
@@ -49,11 +54,13 @@ class TeamsScreen extends ConsumerWidget {
           },
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showAddTeamDialog(context, ref),
-        backgroundColor: const Color(0xFFFFD700),
-        child: const Icon(Icons.add, color: Colors.black),
-      ),
+      floatingActionButton: isAdmin
+          ? FloatingActionButton(
+              onPressed: () => _showAddTeamDialog(context, ref),
+              backgroundColor: const Color(0xFFFFD700),
+              child: const Icon(Icons.add, color: Colors.black),
+            )
+          : null,
     );
   }
 

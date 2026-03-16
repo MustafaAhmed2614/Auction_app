@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:async';
 import '../models/player.dart';
 import '../models/team.dart';
+import '../utils/access_control.dart';
 
 class AuctionState {
   final Player? currentPlayer;
@@ -15,7 +16,7 @@ class AuctionState {
     this.currentPlayer,
     this.currentBid = 0,
     this.leadingTeam,
-    this.timeRemaining = 10,
+    this.timeRemaining = 30,
     this.isAuctionActive = false,
   });
 
@@ -40,7 +41,7 @@ class AuctionState {
       currentPlayer: json['currentPlayer'] != null ? Player.fromJson(Map<String, dynamic>.from(json['currentPlayer'])) : null,
       currentBid: json['currentBid'] as int? ?? 0,
       leadingTeam: json['leadingTeam'] != null ? Team.fromJson(Map<String, dynamic>.from(json['leadingTeam'])) : null,
-      timeRemaining: json['timeRemaining'] as int? ?? 10,
+      timeRemaining: json['timeRemaining'] as int? ?? 30,
       isAuctionActive: json['isAuctionActive'] as bool? ?? false,
     );
   }
@@ -86,25 +87,29 @@ class AuctionNotifier extends Notifier<AuctionState> {
     FirebaseFirestore.instance.collection('auction').doc('current').set(newState.toJson());
   }
 
-  void startAuctionForPlayer(Player player) {
+  Future<void> startAuctionForPlayer(Player player) async {
+    if (!await isCurrentUserAdmin()) return;
+
     _timer?.cancel();
     final newState = AuctionState(
       currentPlayer: player,
       currentBid: player.basePrice,
-      timeRemaining: 10,
+      timeRemaining: 30,
       isAuctionActive: true,
     );
     _syncState(newState);
     _startTimer();
   }
 
-  void placeBid(Team team, int bidAmount) {
+  Future<void> placeBid(Team team, int bidAmount) async {
+    if (!await isCurrentUserAdmin()) return;
+
     if (!state.isAuctionActive || state.currentPlayer == null) return;
     
     if (team.remainingPoints < bidAmount) return;
     if (bidAmount <= state.currentBid) return;
 
-    final newState = state.copyWith(currentBid: bidAmount, leadingTeam: team, timeRemaining: 10);
+    final newState = state.copyWith(currentBid: bidAmount, leadingTeam: team, timeRemaining: 30);
     _syncState(newState);
     _startTimer();
   }
@@ -121,7 +126,9 @@ class AuctionNotifier extends Notifier<AuctionState> {
     });
   }
 
-  void resetAuction() {
+  Future<void> resetAuction() async {
+    if (!await isCurrentUserAdmin()) return;
+
     _timer?.cancel();
     _syncState(AuctionState());
   }

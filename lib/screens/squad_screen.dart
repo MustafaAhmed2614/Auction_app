@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/history_provider.dart';
+import '../providers/auth_provider.dart';
 import '../models/team.dart';
+import '../models/auction_result.dart';
 
 import '../providers/player_provider.dart';
 import '../providers/team_provider.dart';
@@ -11,7 +13,11 @@ class SquadScreen extends ConsumerWidget {
 
   const SquadScreen({super.key, required this.team});
 
-  void _resetTeam(BuildContext context, WidgetRef ref, List<dynamic> boughtPlayers) {
+  Future<void> _resetTeam(
+    BuildContext context,
+    WidgetRef ref,
+    List<AuctionResult> boughtPlayers,
+  ) async {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -20,14 +26,56 @@ class SquadScreen extends ConsumerWidget {
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('CANCEL')),
           TextButton(
-            onPressed: () {
-              for (var result in boughtPlayers) {
-                ref.read(playerProvider.notifier).markAsUnsold(result.player.id);
-                ref.read(historyProvider.notifier).removeResult(result.id);
+            onPressed: () async {
+              final isAdmin = ref.read(isAdminProvider);
+              if (!isAdmin) {
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Only admin can reset teams.')),
+                );
+                return;
               }
-              ref.read(teamProvider.notifier).resetTeam(team.id);
-              Navigator.pop(ctx);
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Team reset successfully')));
+
+              try {
+                int playerUpdateFailures = 0;
+                int historyDeleteFailures = 0;
+
+                for (final result in boughtPlayers) {
+                  try {
+                    await ref
+                        .read(playerProvider.notifier)
+                        .markAsUnsold(result.player.id);
+                  } catch (_) {
+                    playerUpdateFailures++;
+                  }
+
+                  try {
+                    await ref
+                        .read(historyProvider.notifier)
+                        .removeResult(result.id);
+                  } catch (_) {
+                    historyDeleteFailures++;
+                  }
+                }
+
+                await ref.read(teamProvider.notifier).resetTeam(team.id);
+                if (!context.mounted || !ctx.mounted) return;
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      playerUpdateFailures == 0 && historyDeleteFailures == 0
+                          ? 'Team reset successfully'
+                          : 'Team reset done with partial issues (player: $playerUpdateFailures, history: $historyDeleteFailures)',
+                    ),
+                  ),
+                );
+              } catch (e) {
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Failed to reset team: $e')),
+                );
+              }
             },
             child: const Text('RESET', style: TextStyle(color: Colors.red)),
           ),
@@ -36,7 +84,11 @@ class SquadScreen extends ConsumerWidget {
     );
   }
 
-  void _removePlayer(BuildContext context, WidgetRef ref, dynamic result) {
+  Future<void> _removePlayer(
+    BuildContext context,
+    WidgetRef ref,
+    AuctionResult result,
+  ) async {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -45,12 +97,37 @@ class SquadScreen extends ConsumerWidget {
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('CANCEL')),
           TextButton(
-            onPressed: () {
-              ref.read(teamProvider.notifier).addTeamPoints(team.id, result.finalPrice);
-              ref.read(playerProvider.notifier).markAsUnsold(result.player.id);
-              ref.read(historyProvider.notifier).removeResult(result.id);
-              Navigator.pop(ctx);
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Player removed')));
+            onPressed: () async {
+              final isAdmin = ref.read(isAdminProvider);
+              if (!isAdmin) {
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Only admin can remove players.')),
+                );
+                return;
+              }
+
+              try {
+                await ref.read(teamProvider.notifier).addTeamPoints(team.id, result.finalPrice);
+                try {
+                  await ref
+                      .read(playerProvider.notifier)
+                      .markAsUnsold(result.player.id);
+                } catch (_) {
+                  // Keep processing so history can still be cleaned up.
+                }
+                await ref.read(historyProvider.notifier).removeResult(result.id);
+                if (!context.mounted || !ctx.mounted) return;
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Player removed')),
+                );
+              } catch (e) {
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Failed to remove player: $e')),
+                );
+              }
             },
             child: const Text('REMOVE', style: TextStyle(color: Colors.red)),
           ),
@@ -63,6 +140,7 @@ class SquadScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final history = ref.watch(historyProvider);
     final teams = ref.watch(teamProvider);
+    final isAdmin = ref.watch(isAdminProvider);
     final currentTeam = teams.firstWhere((t) => t.id == team.id, orElse: () => team);
     
     // Find players bought by this team
@@ -73,11 +151,12 @@ class SquadScreen extends ConsumerWidget {
         title: Text('${currentTeam.name} Squad'),
         backgroundColor: const Color(0xFF1B5E20),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.restart_alt),
-            tooltip: 'Reset Team',
-            onPressed: () => _resetTeam(context, ref, boughtPlayers),
-          )
+          if (isAdmin)
+            IconButton(
+              icon: const Icon(Icons.restart_alt),
+              tooltip: 'Reset Team',
+              onPressed: () => _resetTeam(context, ref, boughtPlayers),
+            )
         ],
       ),
       body: Container(
@@ -134,11 +213,13 @@ class SquadScreen extends ConsumerWidget {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Text('${result.finalPrice} pts', style: const TextStyle(color: Colors.greenAccent, fontSize: 16, fontWeight: FontWeight.bold)),
-                                const SizedBox(width: 8),
-                                IconButton(
-                                  icon: const Icon(Icons.delete, color: Colors.redAccent),
-                                  onPressed: () => _removePlayer(context, ref, result),
-                                )
+                                if (isAdmin) ...[
+                                  const SizedBox(width: 8),
+                                  IconButton(
+                                    icon: const Icon(Icons.delete, color: Colors.redAccent),
+                                    onPressed: () => _removePlayer(context, ref, result),
+                                  ),
+                                ]
                               ],
                             ),
                           ),

@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:uuid/uuid.dart';
 import '../models/player.dart';
+import '../utils/access_control.dart';
 
 class PlayerNotifier extends Notifier<List<Player>> {
   @override
@@ -18,6 +19,8 @@ class PlayerNotifier extends Notifier<List<Player>> {
   }
 
   Future<void> addPlayer(String name, String category, int basePrice, String? image) async {
+    if (!await isCurrentUserAdmin()) return;
+
     final newPlayer = Player(
       id: const Uuid().v4(),
       name: name,
@@ -29,14 +32,20 @@ class PlayerNotifier extends Notifier<List<Player>> {
   }
 
   Future<void> markAsSold(String id) async {
+    if (!await isCurrentUserAdmin()) return;
+
     await FirebaseFirestore.instance.collection('players').doc(id).update({'isSold': true});
   }
 
   Future<void> markAsUnsold(String id) async {
+    if (!await isCurrentUserAdmin()) return;
+
     await FirebaseFirestore.instance.collection('players').doc(id).update({'isSold': false});
   }
 
   Future<void> deletePlayer(String id) async {
+    if (!await isCurrentUserAdmin()) return;
+
     await FirebaseFirestore.instance.collection('players').doc(id).delete();
   }
 }

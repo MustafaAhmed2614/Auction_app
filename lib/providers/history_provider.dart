@@ -4,6 +4,7 @@ import 'package:uuid/uuid.dart';
 import '../models/auction_result.dart';
 import '../models/player.dart';
 import '../models/team.dart';
+import '../utils/access_control.dart';
 
 class HistoryNotifier extends Notifier<List<AuctionResult>> {
   @override
@@ -21,6 +22,8 @@ class HistoryNotifier extends Notifier<List<AuctionResult>> {
   }
 
   Future<void> addResult(Player player, Team winningTeam, int finalPrice) async {
+    if (!await isCurrentUserAdmin()) return;
+
     final result = AuctionResult(
       id: const Uuid().v4(),
       player: player,
@@ -32,6 +35,8 @@ class HistoryNotifier extends Notifier<List<AuctionResult>> {
   }
 
   Future<void> removeResult(String resultId) async {
+    if (!await isCurrentUserAdmin()) return;
+
     await FirebaseFirestore.instance.collection('auction_results').doc(resultId).delete();
   }
 }

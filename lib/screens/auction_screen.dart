@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:confetti/confetti.dart';
 // import 'package:audioplayers/audioplayers.dart'; // optional audio
+import '../providers/auth_provider.dart';
 import '../providers/auction_provider.dart';
 import '../providers/player_provider.dart';
 import '../providers/team_provider.dart';
@@ -66,9 +67,10 @@ class _AuctionScreenState extends ConsumerState<AuctionScreen> {
     final unsoldPlayers = ref.watch(unsoldPlayersProvider);
     final auctionState = ref.watch(auctionProvider);
     final teams = ref.watch(teamProvider);
+    final isAdmin = ref.watch(isAdminProvider);
 
     ref.listen<AuctionState>(auctionProvider, (previous, next) {
-      if (previous?.isAuctionActive == true && !next.isAuctionActive) {
+      if (isAdmin && previous?.isAuctionActive == true && !next.isAuctionActive) {
         _resolveAuction(next);
       }
     });
@@ -78,10 +80,11 @@ class _AuctionScreenState extends ConsumerState<AuctionScreen> {
         title: const Text('Live Auction'),
         backgroundColor: const Color(0xFF1B5E20),
         actions: [
-           IconButton(
-             icon: const Icon(Icons.refresh),
-             onPressed: () => ref.read(auctionProvider.notifier).resetAuction(),
-           )
+          if (isAdmin)
+            IconButton(
+              icon: const Icon(Icons.refresh),
+              onPressed: () => ref.read(auctionProvider.notifier).resetAuction(),
+            )
         ],
       ),
       body: Stack(
@@ -95,8 +98,10 @@ class _AuctionScreenState extends ConsumerState<AuctionScreen> {
               ),
             ),
             child: auctionState.isAuctionActive || auctionState.currentPlayer != null
-                ? _buildActiveAuction(context, auctionState, teams)
-                : _buildPlayerSelection(context, unsoldPlayers),
+              ? _buildActiveAuction(context, auctionState, teams, isAdmin)
+              : isAdmin
+                ? _buildPlayerSelection(context, unsoldPlayers)
+                : _buildWaitingForAdmin(),
           ),
           Align(
             alignment: Alignment.topCenter,
@@ -109,6 +114,19 @@ class _AuctionScreenState extends ConsumerState<AuctionScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildWaitingForAdmin() {
+    return const Center(
+      child: Padding(
+        padding: EdgeInsets.all(24),
+        child: Text(
+          'Waiting for admin to start the next auction...',
+          textAlign: TextAlign.center,
+          style: TextStyle(color: Colors.white, fontSize: 20),
+        ),
       ),
     );
   }
@@ -155,7 +173,7 @@ class _AuctionScreenState extends ConsumerState<AuctionScreen> {
     );
   }
 
-  Widget _buildActiveAuction(BuildContext context, AuctionState state, List<Team> teams) {
+  Widget _buildActiveAuction(BuildContext context, AuctionState state, List<Team> teams, bool isAdmin) {
     final player = state.currentPlayer!;
     
     return SingleChildScrollView(
@@ -180,7 +198,11 @@ class _AuctionScreenState extends ConsumerState<AuctionScreen> {
                     Column(
                       children: [
                         const Text('Current Bid', style: TextStyle(color: Colors.white70, fontSize: 16)),
-                        Text('${state.currentBid}', style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold)),
+                        Text(
+                          '${state.currentBid} (Next +2000)',
+                          style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold),
+                          textAlign: TextAlign.center,
+                        ),
                         if (state.leadingTeam != null)
                           Text(state.leadingTeam!.name, style: const TextStyle(color: Color(0xFFFFD700), fontSize: 16)),
                       ],
@@ -221,11 +243,11 @@ class _AuctionScreenState extends ConsumerState<AuctionScreen> {
             itemCount: teams.length,
             itemBuilder: (context, index) {
               final team = teams[index];
-              return _buildTeamBiddingPanel(team, state);
+              return _buildTeamBiddingPanel(team, state, isAdmin);
             },
           ),
         
-        if (!state.isAuctionActive && state.currentPlayer != null)
+        if (isAdmin && !state.isAuctionActive && state.currentPlayer != null)
            Padding(
              padding: const EdgeInsets.all(16.0),
              child: ElevatedButton(
@@ -242,9 +264,12 @@ class _AuctionScreenState extends ConsumerState<AuctionScreen> {
     );
   }
 
-  Widget _buildTeamBiddingPanel(Team team, AuctionState state) {
+  Widget _buildTeamBiddingPanel(Team team, AuctionState state, bool isAdmin) {
     bool isLeading = state.leadingTeam?.id == team.id;
-    bool canBid = state.isAuctionActive && !isLeading && team.remainingPoints > state.currentBid;
+    final nextBidAmount = state.currentBid + 2000;
+    final rawLivePurse = team.remainingPoints - (isLeading ? state.currentBid : 0);
+    final livePurse = rawLivePurse < 0 ? 0 : rawLivePurse;
+    bool canBid = state.isAuctionActive && isAdmin && !isLeading && team.remainingPoints >= nextBidAmount;
 
     return Container(
       decoration: BoxDecoration(
@@ -257,7 +282,10 @@ class _AuctionScreenState extends ConsumerState<AuctionScreen> {
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
           Text(team.name, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
-          Text('${team.remainingPoints} pts', style: TextStyle(color: canBid ? Colors.greenAccent : Colors.redAccent, fontSize: 14)),
+          Text(
+            'Live Purse: $livePurse pts',
+            style: TextStyle(color: canBid || isLeading ? Colors.greenAccent : Colors.redAccent, fontSize: 14),
+          ),
           const SizedBox(height: 8),
           
           if (isLeading)
@@ -267,29 +295,10 @@ class _AuctionScreenState extends ConsumerState<AuctionScreen> {
              ElevatedButton(
                 onPressed: canBid ? () {
                   // _playBidSound();
-                  ref.read(auctionProvider.notifier).placeBid(team, state.currentBid + 1000);
+                  ref.read(auctionProvider.notifier).placeBid(team, nextBidAmount);
                 } : null,
                 style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFFD700)),
-                child: const Text('+1000', style: TextStyle(color: Colors.black)),
-              ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  ElevatedButton(
-                    onPressed: canBid ? () {
-                      ref.read(auctionProvider.notifier).placeBid(team, state.currentBid + 2000);
-                    } : null,
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.white24, padding: const EdgeInsets.symmetric(horizontal: 8)),
-                    child: const Text('+2k', style: TextStyle(color: Colors.white)),
-                  ),
-                  ElevatedButton(
-                    onPressed: canBid ? () {
-                      ref.read(auctionProvider.notifier).placeBid(team, state.currentBid + 5000);
-                    } : null,
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.white24, padding: const EdgeInsets.symmetric(horizontal: 8)),
-                    child: const Text('+5k', style: TextStyle(color: Colors.white)),
-                  ),
-                ],
+                child: const Text('+2000', style: TextStyle(color: Colors.black)),
               )
           ]
         ],
