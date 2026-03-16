@@ -106,25 +106,6 @@ class HomeScreen extends ConsumerWidget {
                       ),
                     ),
                   ),
-                  if (!isAdmin) ...[
-                    const SizedBox(height: 12),
-                    TextButton.icon(
-                      onPressed: () async {
-                        await promoteCurrentUserToAdminForDev();
-                        if (!context.mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('This account is now admin (dev mode).'),
-                          ),
-                        );
-                      },
-                      icon: const Icon(Icons.admin_panel_settings, color: Colors.white),
-                      label: const Text(
-                        'Make Me Admin (Dev)',
-                        style: TextStyle(color: Colors.white),
-                      ),
-                    ),
-                  ],
                   const SizedBox(height: 60),
                   _buildMenuButton(
                     context,

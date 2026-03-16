@@ -22,9 +22,14 @@ class SquadScreen extends ConsumerWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Reset Team?'),
-        content: const Text('Are you sure you want to remove all players and reset the budget to 100,000 pts?'),
+        content: const Text(
+          'Are you sure you want to remove all players and reset the budget to 100,000 pts?',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('CANCEL')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('CANCEL'),
+          ),
           TextButton(
             onPressed: () async {
               final isAdmin = ref.read(isAdminProvider);
@@ -93,22 +98,31 @@ class SquadScreen extends ConsumerWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Remove Player?'),
-        content: Text('Remove ${result.player.name} and refund ${result.finalPrice} pts?'),
+        content: Text(
+          'Remove ${result.player.name} and refund ${result.finalPrice} pts?',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('CANCEL')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('CANCEL'),
+          ),
           TextButton(
             onPressed: () async {
               final isAdmin = ref.read(isAdminProvider);
               if (!isAdmin) {
                 if (!context.mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Only admin can remove players.')),
+                  const SnackBar(
+                    content: Text('Only admin can remove players.'),
+                  ),
                 );
                 return;
               }
 
               try {
-                await ref.read(teamProvider.notifier).addTeamPoints(team.id, result.finalPrice);
+                await ref
+                    .read(teamProvider.notifier)
+                    .addTeamPoints(team.id, result.finalPrice);
                 try {
                   await ref
                       .read(playerProvider.notifier)
@@ -116,12 +130,14 @@ class SquadScreen extends ConsumerWidget {
                 } catch (_) {
                   // Keep processing so history can still be cleaned up.
                 }
-                await ref.read(historyProvider.notifier).removeResult(result.id);
+                await ref
+                    .read(historyProvider.notifier)
+                    .removeResult(result.id);
                 if (!context.mounted || !ctx.mounted) return;
                 Navigator.pop(ctx);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Player removed')),
-                );
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(const SnackBar(content: Text('Player removed')));
               } catch (e) {
                 if (!context.mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -141,10 +157,15 @@ class SquadScreen extends ConsumerWidget {
     final history = ref.watch(historyProvider);
     final teams = ref.watch(teamProvider);
     final isAdmin = ref.watch(isAdminProvider);
-    final currentTeam = teams.firstWhere((t) => t.id == team.id, orElse: () => team);
-    
+    final currentTeam = teams.firstWhere(
+      (t) => t.id == team.id,
+      orElse: () => team,
+    );
+
     // Find players bought by this team
-    final boughtPlayers = history.where((h) => h.winningTeam.id == currentTeam.id).toList();
+    final boughtPlayers = history
+        .where((h) => h.winningTeam.id == currentTeam.id)
+        .toList();
 
     return Scaffold(
       appBar: AppBar(
@@ -156,7 +177,7 @@ class SquadScreen extends ConsumerWidget {
               icon: const Icon(Icons.restart_alt),
               tooltip: 'Reset Team',
               onPressed: () => _resetTeam(context, ref, boughtPlayers),
-            )
+            ),
         ],
       ),
       body: Container(
@@ -169,32 +190,57 @@ class SquadScreen extends ConsumerWidget {
         ),
         child: Column(
           children: [
-             Container(
-               padding: const EdgeInsets.all(24),
-               color: Colors.black26,
-               child: Row(
-                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                 children: [
-                   Column(
-                     crossAxisAlignment: CrossAxisAlignment.start,
-                     children: [
-                       const Text('Remaining Budget', style: TextStyle(color: Colors.white70, fontSize: 16)),
-                       Text('${currentTeam.remainingPoints} pts', style: const TextStyle(color: Color(0xFFFFD700), fontSize: 28, fontWeight: FontWeight.bold)),
-                     ],
-                   ),
-                   Column(
-                     crossAxisAlignment: CrossAxisAlignment.end,
-                     children: [
-                       const Text('Squad Size', style: TextStyle(color: Colors.white70, fontSize: 16)),
-                       Text('${boughtPlayers.length} players', style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
-                     ],
-                   ),
-                 ],
-               ),
-             ),
-             Expanded(
-               child: boughtPlayers.isEmpty
-                  ? const Center(child: Text('No players purchased yet.', style: TextStyle(color: Colors.white, fontSize: 18)))
+            Container(
+              padding: const EdgeInsets.all(24),
+              color: Colors.black26,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Remaining Budget',
+                        style: TextStyle(color: Colors.white70, fontSize: 16),
+                      ),
+                      Text(
+                        '${currentTeam.remainingPoints} pts',
+                        style: const TextStyle(
+                          color: Color(0xFFFFD700),
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      const Text(
+                        'Squad Size',
+                        style: TextStyle(color: Colors.white70, fontSize: 16),
+                      ),
+                      Text(
+                        '${boughtPlayers.length} players',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: boughtPlayers.isEmpty
+                  ? const Center(
+                      child: Text(
+                        'No players purchased yet.',
+                        style: TextStyle(color: Colors.white, fontSize: 18),
+                      ),
+                    )
                   : ListView.builder(
                       padding: const EdgeInsets.all(16),
                       itemCount: boughtPlayers.length,
@@ -205,28 +251,51 @@ class SquadScreen extends ConsumerWidget {
                           child: ListTile(
                             leading: CircleAvatar(
                               backgroundColor: Colors.white24,
-                              child: Text(result.player.name[0], style: const TextStyle(color: Colors.white)),
+                              child: Text(
+                                result.player.name[0],
+                                style: const TextStyle(color: Colors.white),
+                              ),
                             ),
-                            title: Text('${index + 1}. ${result.player.name}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                            subtitle: Text(result.player.category, style: const TextStyle(color: Colors.white70)),
+                            title: Text(
+                              '${index + 1}. ${result.player.name}',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            subtitle: Text(
+                              result.player.category,
+                              style: const TextStyle(color: Colors.white70),
+                            ),
                             trailing: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Text('${result.finalPrice} pts', style: const TextStyle(color: Colors.greenAccent, fontSize: 16, fontWeight: FontWeight.bold)),
+                                Text(
+                                  '${result.finalPrice} pts',
+                                  style: const TextStyle(
+                                    color: Colors.greenAccent,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                                 if (isAdmin) ...[
                                   const SizedBox(width: 8),
                                   IconButton(
-                                    icon: const Icon(Icons.delete, color: Colors.redAccent),
-                                    onPressed: () => _removePlayer(context, ref, result),
+                                    icon: const Icon(
+                                      Icons.delete,
+                                      color: Colors.redAccent,
+                                    ),
+                                    onPressed: () =>
+                                        _removePlayer(context, ref, result),
                                   ),
-                                ]
+                                ],
                               ],
                             ),
                           ),
                         );
                       },
                     ),
-             ),
+            ),
           ],
         ),
       ),

@@ -38,9 +38,13 @@ class AuctionState {
 
   factory AuctionState.fromJson(Map<String, dynamic> json) {
     return AuctionState(
-      currentPlayer: json['currentPlayer'] != null ? Player.fromJson(Map<String, dynamic>.from(json['currentPlayer'])) : null,
+      currentPlayer: json['currentPlayer'] != null
+          ? Player.fromJson(Map<String, dynamic>.from(json['currentPlayer']))
+          : null,
       currentBid: json['currentBid'] as int? ?? 0,
-      leadingTeam: json['leadingTeam'] != null ? Team.fromJson(Map<String, dynamic>.from(json['leadingTeam'])) : null,
+      leadingTeam: json['leadingTeam'] != null
+          ? Team.fromJson(Map<String, dynamic>.from(json['leadingTeam']))
+          : null,
       timeRemaining: json['timeRemaining'] as int? ?? 30,
       isAuctionActive: json['isAuctionActive'] as bool? ?? false,
     );
@@ -65,17 +69,19 @@ class AuctionNotifier extends Notifier<AuctionState> {
     ref.onDispose(() {
       _timer?.cancel();
     });
-    
+
     _listenToAuctionDoc();
     return AuctionState();
   }
 
   void _listenToAuctionDoc() {
-    FirebaseFirestore.instance.collection('auction').doc('current').snapshots().listen((snapshot) {
+    FirebaseFirestore.instance.collection('auction').doc('current').snapshots().listen((
+      snapshot,
+    ) {
       if (snapshot.exists && snapshot.data() != null) {
         state = AuctionState.fromJson(snapshot.data()!);
-        
-        // Timer only runs on the device that initiated the auction or bids, 
+
+        // Timer only runs on the device that initiated the auction or bids,
         // to avoid all 4 devices running timers out of sync, we let one device command the timer.
         // For simplicity in family games, we'll let whoever starts it host the timer.
         // In a fully decentralized system, a Cloud Function handles the timer.
@@ -84,7 +90,10 @@ class AuctionNotifier extends Notifier<AuctionState> {
   }
 
   void _syncState(AuctionState newState) {
-    FirebaseFirestore.instance.collection('auction').doc('current').set(newState.toJson());
+    FirebaseFirestore.instance
+        .collection('auction')
+        .doc('current')
+        .set(newState.toJson());
   }
 
   Future<void> startAuctionForPlayer(Player player) async {
@@ -105,11 +114,15 @@ class AuctionNotifier extends Notifier<AuctionState> {
     if (!await isCurrentUserAdmin()) return;
 
     if (!state.isAuctionActive || state.currentPlayer == null) return;
-    
+
     if (team.remainingPoints < bidAmount) return;
     if (bidAmount <= state.currentBid) return;
 
-    final newState = state.copyWith(currentBid: bidAmount, leadingTeam: team, timeRemaining: 30);
+    final newState = state.copyWith(
+      currentBid: bidAmount,
+      leadingTeam: team,
+      timeRemaining: 30,
+    );
     _syncState(newState);
     _startTimer();
   }

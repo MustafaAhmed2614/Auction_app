@@ -12,13 +12,22 @@ class PlayerNotifier extends Notifier<List<Player>> {
   }
 
   void _listenToPlayers() {
-     FirebaseFirestore.instance.collection('players').snapshots().listen((snapshot) {
-      final players = snapshot.docs.map((doc) => Player.fromJson(doc.data())).toList();
+    FirebaseFirestore.instance.collection('players').snapshots().listen((
+      snapshot,
+    ) {
+      final players = snapshot.docs
+          .map((doc) => Player.fromJson(doc.data()))
+          .toList();
       state = players;
     });
   }
 
-  Future<void> addPlayer(String name, String category, int basePrice, String? image) async {
+  Future<void> addPlayer(
+    String name,
+    String category,
+    int basePrice,
+    String? image,
+  ) async {
     if (!await isCurrentUserAdmin()) return;
 
     final newPlayer = Player(
@@ -28,19 +37,26 @@ class PlayerNotifier extends Notifier<List<Player>> {
       basePrice: basePrice,
       image: image,
     );
-    await FirebaseFirestore.instance.collection('players').doc(newPlayer.id).set(newPlayer.toJson());
+    await FirebaseFirestore.instance
+        .collection('players')
+        .doc(newPlayer.id)
+        .set(newPlayer.toJson());
   }
 
   Future<void> markAsSold(String id) async {
     if (!await isCurrentUserAdmin()) return;
 
-    await FirebaseFirestore.instance.collection('players').doc(id).update({'isSold': true});
+    await FirebaseFirestore.instance.collection('players').doc(id).update({
+      'isSold': true,
+    });
   }
 
   Future<void> markAsUnsold(String id) async {
     if (!await isCurrentUserAdmin()) return;
 
-    await FirebaseFirestore.instance.collection('players').doc(id).update({'isSold': false});
+    await FirebaseFirestore.instance.collection('players').doc(id).update({
+      'isSold': false,
+    });
   }
 
   Future<void> deletePlayer(String id) async {

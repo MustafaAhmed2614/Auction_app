@@ -18,7 +18,9 @@ class AuctionScreen extends ConsumerStatefulWidget {
 }
 
 class _AuctionScreenState extends ConsumerState<AuctionScreen> {
-  final _confettiController = ConfettiController(duration: const Duration(seconds: 2));
+  final _confettiController = ConfettiController(
+    duration: const Duration(seconds: 2),
+  );
   // final _audioPlayer = AudioPlayer();
 
   @override
@@ -39,21 +41,27 @@ class _AuctionScreenState extends ConsumerState<AuctionScreen> {
       final price = state.currentBid;
       final player = state.currentPlayer!;
 
-      ref.read(teamProvider.notifier).updateTeamPoints(winningTeam.id, winningTeam.remainingPoints, price);
-      ref.read(teamProvider.notifier).addPlayerToSquad(winningTeam.id, player.id);
+      ref
+          .read(teamProvider.notifier)
+          .updateTeamPoints(winningTeam.id, winningTeam.remainingPoints, price);
+      ref
+          .read(teamProvider.notifier)
+          .addPlayerToSquad(winningTeam.id, player.id);
       ref.read(playerProvider.notifier).markAsSold(player.id);
       ref.read(historyProvider.notifier).addResult(player, winningTeam, price);
 
       _confettiController.play();
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('${player.name} SOLD to ${winningTeam.name} for $price!'),
+          content: Text(
+            '${player.name} SOLD to ${winningTeam.name} for $price!',
+          ),
           backgroundColor: Colors.green,
         ),
       );
     } else if (state.currentPlayer != null && state.leadingTeam == null) {
-       ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Player UNSOLD!'),
           backgroundColor: Colors.red,
@@ -70,7 +78,9 @@ class _AuctionScreenState extends ConsumerState<AuctionScreen> {
     final isAdmin = ref.watch(isAdminProvider);
 
     ref.listen<AuctionState>(auctionProvider, (previous, next) {
-      if (isAdmin && previous?.isAuctionActive == true && !next.isAuctionActive) {
+      if (isAdmin &&
+          previous?.isAuctionActive == true &&
+          !next.isAuctionActive) {
         _resolveAuction(next);
       }
     });
@@ -83,8 +93,9 @@ class _AuctionScreenState extends ConsumerState<AuctionScreen> {
           if (isAdmin)
             IconButton(
               icon: const Icon(Icons.refresh),
-              onPressed: () => ref.read(auctionProvider.notifier).resetAuction(),
-            )
+              onPressed: () =>
+                  ref.read(auctionProvider.notifier).resetAuction(),
+            ),
         ],
       ),
       body: Stack(
@@ -97,9 +108,11 @@ class _AuctionScreenState extends ConsumerState<AuctionScreen> {
                 end: Alignment.bottomCenter,
               ),
             ),
-            child: auctionState.isAuctionActive || auctionState.currentPlayer != null
-              ? _buildActiveAuction(context, auctionState, teams, isAdmin)
-              : isAdmin
+            child:
+                auctionState.isAuctionActive ||
+                    auctionState.currentPlayer != null
+                ? _buildActiveAuction(context, auctionState, teams, isAdmin)
+                : isAdmin
                 ? _buildPlayerSelection(context, unsoldPlayers)
                 : _buildWaitingForAdmin(),
           ),
@@ -110,7 +123,12 @@ class _AuctionScreenState extends ConsumerState<AuctionScreen> {
               blastDirectionality: BlastDirectionality.explosive,
               emissionFrequency: 0.05,
               numberOfParticles: 50,
-              colors: const [Colors.green, Colors.blue, Colors.yellow, Colors.red],
+              colors: const [
+                Colors.green,
+                Colors.blue,
+                Colors.yellow,
+                Colors.red,
+              ],
             ),
           ),
         ],
@@ -131,10 +149,16 @@ class _AuctionScreenState extends ConsumerState<AuctionScreen> {
     );
   }
 
-  Widget _buildPlayerSelection(BuildContext context, List<Player> unsoldPlayers) {
+  Widget _buildPlayerSelection(
+    BuildContext context,
+    List<Player> unsoldPlayers,
+  ) {
     if (unsoldPlayers.isEmpty) {
       return const Center(
-        child: Text('No more players available!', style: TextStyle(color: Colors.white, fontSize: 24)),
+        child: Text(
+          'No more players available!',
+          style: TextStyle(color: Colors.white, fontSize: 24),
+        ),
       );
     }
 
@@ -142,7 +166,14 @@ class _AuctionScreenState extends ConsumerState<AuctionScreen> {
       children: [
         const Padding(
           padding: EdgeInsets.all(16.0),
-          child: Text('Select Next Player', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+          child: Text(
+            'Select Next Player',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
         ),
         Expanded(
           child: ListView.builder(
@@ -152,17 +183,35 @@ class _AuctionScreenState extends ConsumerState<AuctionScreen> {
               return Card(
                 color: Colors.white12,
                 margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 child: ListTile(
-                  leading: const CircleAvatar(backgroundColor: Color(0xFFFFD700), child: Icon(Icons.person, color: Colors.black)),
-                  title: Text('${index + 1}. ${player.name}', style: const TextStyle(color: Colors.white)),
-                  subtitle: Text('${player.category} • Base Price: ${player.basePrice}', style: const TextStyle(color: Colors.white70)),
+                  leading: const CircleAvatar(
+                    backgroundColor: Color(0xFFFFD700),
+                    child: Icon(Icons.person, color: Colors.black),
+                  ),
+                  title: Text(
+                    '${index + 1}. ${player.name}',
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                  subtitle: Text(
+                    '${player.category} • Base Price: ${player.basePrice}',
+                    style: const TextStyle(color: Colors.white70),
+                  ),
                   trailing: ElevatedButton(
-                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFFD700)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFFFD700),
+                    ),
                     onPressed: () {
-                      ref.read(auctionProvider.notifier).startAuctionForPlayer(player);
+                      ref
+                          .read(auctionProvider.notifier)
+                          .startAuctionForPlayer(player);
                     },
-                    child: const Text('Bring to Auction', style: TextStyle(color: Colors.black)),
+                    child: const Text(
+                      'Bring to Auction',
+                      style: TextStyle(color: Colors.black),
+                    ),
                   ),
                 ),
               );
@@ -173,9 +222,14 @@ class _AuctionScreenState extends ConsumerState<AuctionScreen> {
     );
   }
 
-  Widget _buildActiveAuction(BuildContext context, AuctionState state, List<Team> teams, bool isAdmin) {
+  Widget _buildActiveAuction(
+    BuildContext context,
+    AuctionState state,
+    List<Team> teams,
+    bool isAdmin,
+  ) {
     final player = state.currentPlayer!;
-    
+
     return SingleChildScrollView(
       child: Column(
         children: [
@@ -184,27 +238,58 @@ class _AuctionScreenState extends ConsumerState<AuctionScreen> {
             padding: const EdgeInsets.all(24),
             decoration: const BoxDecoration(
               color: Colors.black45,
-              borderRadius: BorderRadius.only(bottomLeft: Radius.circular(32), bottomRight: Radius.circular(32)),
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(32),
+                bottomRight: Radius.circular(32),
+              ),
             ),
             child: Column(
               children: [
-                Text(player.category.toUpperCase(), style: const TextStyle(color: Color(0xFFFFD700), fontSize: 16, letterSpacing: 2, fontWeight: FontWeight.bold)),
+                Text(
+                  player.category.toUpperCase(),
+                  style: const TextStyle(
+                    color: Color(0xFFFFD700),
+                    fontSize: 16,
+                    letterSpacing: 2,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
                 const SizedBox(height: 8),
-                Text(player.name, style: const TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.bold)),
+                Text(
+                  player.name,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 36,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
                 const SizedBox(height: 16),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     Column(
                       children: [
-                        const Text('Current Bid', style: TextStyle(color: Colors.white70, fontSize: 16)),
+                        const Text(
+                          'Current Bid',
+                          style: TextStyle(color: Colors.white70, fontSize: 16),
+                        ),
                         Text(
                           '${state.currentBid} (Next +2000)',
-                          style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                          ),
                           textAlign: TextAlign.center,
                         ),
                         if (state.leadingTeam != null)
-                          Text(state.leadingTeam!.name, style: const TextStyle(color: Color(0xFFFFD700), fontSize: 16)),
+                          Text(
+                            state.leadingTeam!.name,
+                            style: const TextStyle(
+                              color: Color(0xFFFFD700),
+                              fontSize: 16,
+                            ),
+                          ),
                       ],
                     ),
                     Container(
@@ -212,15 +297,26 @@ class _AuctionScreenState extends ConsumerState<AuctionScreen> {
                       height: 80,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        border: Border.all(color: state.timeRemaining <= 3 ? Colors.red : Colors.green, width: 4),
+                        border: Border.all(
+                          color: state.timeRemaining <= 3
+                              ? Colors.red
+                              : Colors.green,
+                          width: 4,
+                        ),
                       ),
                       child: Center(
                         child: Text(
                           '${state.timeRemaining}',
-                          style: TextStyle(color: state.timeRemaining <= 3 ? Colors.red : Colors.white, fontSize: 36, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                            color: state.timeRemaining <= 3
+                                ? Colors.red
+                                : Colors.white,
+                            fontSize: 36,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
-                    )
+                    ),
                   ],
                 ),
               ],
@@ -228,7 +324,7 @@ class _AuctionScreenState extends ConsumerState<AuctionScreen> {
           ),
 
           const SizedBox(height: 16),
-          
+
           // Bidding interface for 4 teams
           GridView.builder(
             shrinkWrap: true,
@@ -246,61 +342,101 @@ class _AuctionScreenState extends ConsumerState<AuctionScreen> {
               return _buildTeamBiddingPanel(team, state, isAdmin);
             },
           ),
-        
-        if (isAdmin && !state.isAuctionActive && state.currentPlayer != null)
-           Padding(
-             padding: const EdgeInsets.all(16.0),
-             child: ElevatedButton(
-               style: ElevatedButton.styleFrom(
-                 backgroundColor: const Color(0xFF1B5E20),
-                 minimumSize: const Size.fromHeight(50),
-               ),
-               onPressed: () => ref.read(auctionProvider.notifier).resetAuction(),
-               child: const Text('Next Auction', style: TextStyle(color: Colors.white, fontSize: 18)),
-             ),
-           )
-      ],
-    ),
+
+          if (isAdmin && !state.isAuctionActive && state.currentPlayer != null)
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1B5E20),
+                  minimumSize: const Size.fromHeight(50),
+                ),
+                onPressed: () =>
+                    ref.read(auctionProvider.notifier).resetAuction(),
+                child: const Text(
+                  'Next Auction',
+                  style: TextStyle(color: Colors.white, fontSize: 18),
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 
   Widget _buildTeamBiddingPanel(Team team, AuctionState state, bool isAdmin) {
     bool isLeading = state.leadingTeam?.id == team.id;
     final nextBidAmount = state.currentBid + 2000;
-    final rawLivePurse = team.remainingPoints - (isLeading ? state.currentBid : 0);
+    final rawLivePurse =
+        team.remainingPoints - (isLeading ? state.currentBid : 0);
     final livePurse = rawLivePurse < 0 ? 0 : rawLivePurse;
-    bool canBid = state.isAuctionActive && isAdmin && !isLeading && team.remainingPoints >= nextBidAmount;
+    bool canBid =
+        state.isAuctionActive &&
+        isAdmin &&
+        !isLeading &&
+        team.remainingPoints >= nextBidAmount;
 
     return Container(
       decoration: BoxDecoration(
-        color: isLeading ? const Color(0xFF1B5E20).withValues(alpha: 0.8) : Colors.black45,
+        color: isLeading
+            ? const Color(0xFF1B5E20).withValues(alpha: 0.8)
+            : Colors.black45,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: isLeading ? const Color(0xFFFFD700) : Colors.white24, width: isLeading ? 2 : 1),
+        border: Border.all(
+          color: isLeading ? const Color(0xFFFFD700) : Colors.white24,
+          width: isLeading ? 2 : 1,
+        ),
       ),
       padding: const EdgeInsets.all(12),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          Text(team.name, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
+          Text(
+            team.name,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+            textAlign: TextAlign.center,
+          ),
           Text(
             'Live Purse: $livePurse pts',
-            style: TextStyle(color: canBid || isLeading ? Colors.greenAccent : Colors.redAccent, fontSize: 14),
+            style: TextStyle(
+              color: canBid || isLeading
+                  ? Colors.greenAccent
+                  : Colors.redAccent,
+              fontSize: 14,
+            ),
           ),
           const SizedBox(height: 8),
-          
+
           if (isLeading)
-            const Text('LEADING', style: TextStyle(color: Color(0xFFFFD700), fontWeight: FontWeight.bold, fontSize: 20)),
+            const Text(
+              'LEADING',
+              style: TextStyle(
+                color: Color(0xFFFFD700),
+                fontWeight: FontWeight.bold,
+                fontSize: 20,
+              ),
+            ),
 
           if (!isLeading) ...[
-             ElevatedButton(
-                onPressed: canBid ? () {
-                  // _playBidSound();
-                  ref.read(auctionProvider.notifier).placeBid(team, nextBidAmount);
-                } : null,
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFFD700)),
-                child: const Text('+2000', style: TextStyle(color: Colors.black)),
-              )
-          ]
+            ElevatedButton(
+              onPressed: canBid
+                  ? () {
+                      // _playBidSound();
+                      ref
+                          .read(auctionProvider.notifier)
+                          .placeBid(team, nextBidAmount);
+                    }
+                  : null,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFFFD700),
+              ),
+              child: const Text('+2000', style: TextStyle(color: Colors.black)),
+            ),
+          ],
         ],
       ),
     );

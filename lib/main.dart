@@ -9,7 +9,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   bool firebaseReady = false;
   String? firebaseError;
-  
+
   // Initialize Firebase (Requires flutterfire configure)
   try {
     await Firebase.initializeApp(
@@ -23,10 +23,7 @@ void main() async {
 
   runApp(
     ProviderScope(
-      child: MyApp(
-        firebaseReady: firebaseReady,
-        firebaseError: firebaseError,
-      ),
+      child: MyApp(firebaseReady: firebaseReady, firebaseError: firebaseError),
     ),
   );
 }
@@ -35,11 +32,7 @@ class MyApp extends StatelessWidget {
   final bool firebaseReady;
   final String? firebaseError;
 
-  const MyApp({
-    super.key,
-    required this.firebaseReady,
-    this.firebaseError,
-  });
+  const MyApp({super.key, required this.firebaseReady, this.firebaseError});
 
   @override
   Widget build(BuildContext context) {
@@ -63,10 +56,7 @@ class MyApp extends StatelessWidget {
 class FirebaseUnavailableScreen extends StatelessWidget {
   final String? errorMessage;
 
-  const FirebaseUnavailableScreen({
-    super.key,
-    this.errorMessage,
-  });
+  const FirebaseUnavailableScreen({super.key, this.errorMessage});
 
   @override
   Widget build(BuildContext context) {

@@ -45,9 +45,9 @@ class TeamsScreen extends ConsumerWidget {
               ),
               onDismissed: (_) {
                 ref.read(teamProvider.notifier).deleteTeam(team.id);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('${team.name} deleted')),
-                );
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(SnackBar(content: Text('${team.name} deleted')));
               },
               child: _buildTeamCard(context, team),
             );
@@ -91,18 +91,25 @@ class TeamsScreen extends ConsumerWidget {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
+              child: const Text(
+                'Cancel',
+                style: TextStyle(color: Colors.white54),
+              ),
             ),
             ElevatedButton(
               onPressed: () {
                 final name = nameController.text.trim();
                 final budget = int.tryParse(budgetController.text) ?? 100000;
                 if (name.isNotEmpty) {
-                  ref.read(teamProvider.notifier).addTeam(name, budget, 'assets/logos/logo1.png');
+                  ref
+                      .read(teamProvider.notifier)
+                      .addTeam(name, budget, 'assets/logos/logo1.png');
                   Navigator.pop(context);
                 }
               },
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFFD700)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFFFD700),
+              ),
               child: const Text('Save', style: TextStyle(color: Colors.black)),
             ),
           ],
@@ -139,7 +146,11 @@ class TeamsScreen extends ConsumerWidget {
                   color: Colors.white,
                   border: Border.all(color: const Color(0xFFFFD700), width: 2),
                 ),
-                child: const Icon(Icons.shield, color: Color(0xFF1B5E20), size: 30),
+                child: const Icon(
+                  Icons.shield,
+                  color: Color(0xFF1B5E20),
+                  size: 30,
+                ),
               ),
               const SizedBox(width: 16),
               Expanded(

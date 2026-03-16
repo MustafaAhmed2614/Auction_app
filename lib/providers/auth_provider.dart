@@ -34,25 +34,18 @@ final userRoleProvider = StreamProvider<AppUserRole>((ref) {
         .doc(user.uid)
         .snapshots()
         .map((snapshot) {
-      final role = snapshot.data()?['role'] as String?;
-      return roleFromString(role);
-    });
+          final role = snapshot.data()?['role'] as String?;
+          return roleFromString(role);
+        });
   });
 });
 
 final isAdminProvider = Provider<bool>((ref) {
-  return ref.watch(userRoleProvider).maybeWhen(
+  return ref
+      .watch(userRoleProvider)
+      .maybeWhen(
         data: (role) => role == AppUserRole.admin,
         orElse: () => false,
       );
 });
 
-Future<void> promoteCurrentUserToAdminForDev() async {
-  final user = FirebaseAuth.instance.currentUser;
-  if (user == null) return;
-
-  await FirebaseFirestore.instance
-      .collection('users')
-      .doc(user.uid)
-      .set({'role': 'admin'}, SetOptions(merge: true));
-}
