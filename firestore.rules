@@ -20,6 +20,10 @@ service cloud.firestore {
         userTeamId() is string;
     }
 
+    function canAccessTeamScopedData(teamId) {
+      return signedIn() && (isAdmin() || userTeamId() == teamId);
+    }
+
     function validTeamBidUpdate() {
       return request.resource.data.currentBid is int &&
         request.resource.data.currentBid > resource.data.currentBid &&
@@ -31,9 +35,10 @@ service cloud.firestore {
     }
 
     match /users/{uid} {
-      allow read: if signedIn() && request.auth.uid == uid;
+      allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
       allow create: if signedIn() && request.auth.uid == uid;
-      allow update, delete: if signedIn() && request.auth.uid == uid;
+      allow update: if signedIn() && (request.auth.uid == uid || isAdmin());
+      allow delete: if signedIn() && isAdmin();
     }
 
     match /players/{docId} {
@@ -61,6 +66,26 @@ service cloud.firestore {
     match /matches/{docId} {
       allow read: if signedIn();
       allow write: if isAdmin();
+    }
+
+    match /team_watchlists/{teamId} {
+      allow read, write: if canAccessTeamScopedData(teamId);
+
+      match /items/{playerId} {
+        allow read, write: if canAccessTeamScopedData(teamId);
+      }
+    }
+
+    match /team_budget_plans/{teamId} {
+      allow read, write: if canAccessTeamScopedData(teamId);
+    }
+
+    match /team_notes/{teamId} {
+      allow read, write: if canAccessTeamScopedData(teamId);
+
+      match /players/{playerId} {
+        allow read, write: if canAccessTeamScopedData(teamId);
+      }
     }
   }
 }

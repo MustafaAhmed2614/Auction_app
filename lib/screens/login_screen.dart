@@ -75,7 +75,7 @@ class _LoginScreenState extends State<LoginScreen> {
           await FirebaseFirestore.instance
               .collection('users')
               .doc(credential.user!.uid)
-              .set({'role': 'user'}, SetOptions(merge: true));
+              .set({'role': 'user', 'email': email}, SetOptions(merge: true));
         } on FirebaseException catch (e) {
           _showSnack('Account created, but profile setup failed: ${e.code}');
         }
@@ -92,9 +92,15 @@ class _LoginScreenState extends State<LoginScreen> {
         final snap = await userDoc.get();
         if (!snap.exists) {
           try {
-            await userDoc.set({'role': 'user'});
+            await userDoc.set({'role': 'user', 'email': email});
           } on FirebaseException catch (e) {
             _showSnack('Login successful, but profile setup failed: ${e.code}');
+          }
+        } else {
+          try {
+            await userDoc.set({'email': email}, SetOptions(merge: true));
+          } on FirebaseException {
+            // Non-critical profile refresh.
           }
         }
       }

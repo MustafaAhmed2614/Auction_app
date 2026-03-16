@@ -8,6 +8,8 @@ import 'statistics_screen.dart';
 import 'match_schedule_screen.dart';
 import 'points_table_screen.dart';
 import 'player_management_screen.dart';
+import 'admin_user_management_screen.dart';
+import 'team_owner_panel_screen.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -15,6 +17,7 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isAdmin = ref.watch(isAdminProvider);
+    final hasAssignedTeam = ref.watch(currentUserTeamIdProvider) != null;
 
     return Scaffold(
       appBar: AppBar(
@@ -139,6 +142,35 @@ class HomeScreen extends ConsumerWidget {
                       ),
                     ),
                   ),
+                  if (isAdmin) ...[
+                    const SizedBox(height: 16),
+                    _buildMenuButton(
+                      context,
+                      title: 'Manage Users & Teams',
+                      icon: Icons.admin_panel_settings,
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const AdminUserManagementScreen(),
+                        ),
+                      ),
+                    ),
+                  ] else ...[
+                    const SizedBox(height: 16),
+                    _buildMenuButton(
+                      context,
+                      title: hasAssignedTeam
+                          ? 'Team Owner Panel'
+                          : 'Team Panel (Unassigned)',
+                      icon: Icons.dashboard,
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const TeamOwnerPanelScreen(),
+                        ),
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 24),
                   const Text(
                     'TOURNAMENT',
