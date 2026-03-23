@@ -25,8 +25,10 @@ service cloud.firestore {
     }
 
     function validTeamBidUpdate() {
+      let teamDoc = get(/databases/$(database)/documents/teams/$(userTeamId())).data;
       return request.resource.data.currentBid is int &&
         request.resource.data.currentBid > resource.data.currentBid &&
+        teamDoc.remainingPoints >= request.resource.data.currentBid &&
         request.resource.data.isAuctionActive == true &&
         resource.data.isAuctionActive == true &&
         request.resource.data.timeRemaining == 30 &&
@@ -36,8 +38,12 @@ service cloud.firestore {
 
     match /users/{uid} {
       allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
-      allow create: if signedIn() && request.auth.uid == uid;
-      allow update: if signedIn() && (request.auth.uid == uid || isAdmin());
+      allow create: if signedIn() && request.auth.uid == uid && 
+                    (!request.resource.data.keys().hasAny(['role']) || request.resource.data.role == 'user');
+      allow update: if signedIn() && (
+        isAdmin() || 
+        (request.auth.uid == uid && request.resource.data.get('role', 'user') == resource.data.get('role', 'user'))
+      );
       allow delete: if signedIn() && isAdmin();
     }
 

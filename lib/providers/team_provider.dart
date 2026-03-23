@@ -22,6 +22,8 @@ class TeamNotifier extends Notifier<List<Team>> {
           .map((doc) => Team.fromJson(doc.data()))
           .toList();
       state = teams;
+    }, onError: (e) {
+      // Ignore permission errors on logout
     });
   }
 

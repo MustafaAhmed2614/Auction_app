@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:uuid/uuid.dart';
 import 'dart:async';
 import '../models/player.dart';
 import '../models/team.dart';
@@ -11,6 +12,7 @@ class AuctionState {
   final Team? leadingTeam;
   final int timeRemaining;
   final bool isAuctionActive;
+  final bool isResolved;
 
   AuctionState({
     this.currentPlayer,
@@ -18,6 +20,7 @@ class AuctionState {
     this.leadingTeam,
     this.timeRemaining = 30,
     this.isAuctionActive = false,
+    this.isResolved = false,
   });
 
   AuctionState copyWith({
@@ -26,6 +29,7 @@ class AuctionState {
     Team? leadingTeam,
     int? timeRemaining,
     bool? isAuctionActive,
+    bool? isResolved,
   }) {
     return AuctionState(
       currentPlayer: currentPlayer ?? this.currentPlayer,
@@ -33,6 +37,7 @@ class AuctionState {
       leadingTeam: leadingTeam ?? this.leadingTeam,
       timeRemaining: timeRemaining ?? this.timeRemaining,
       isAuctionActive: isAuctionActive ?? this.isAuctionActive,
+      isResolved: isResolved ?? this.isResolved,
     );
   }
 
@@ -47,6 +52,7 @@ class AuctionState {
           : null,
       timeRemaining: json['timeRemaining'] as int? ?? 30,
       isAuctionActive: json['isAuctionActive'] as bool? ?? false,
+      isResolved: json['isResolved'] as bool? ?? false,
     );
   }
 
@@ -57,8 +63,25 @@ class AuctionState {
       'leadingTeam': leadingTeam?.toJson(),
       'timeRemaining': timeRemaining,
       'isAuctionActive': isAuctionActive,
+      'isResolved': isResolved,
     };
   }
+}
+
+class AuctionResolveResult {
+  final bool handled;
+  final bool sold;
+  final String? playerName;
+  final String? teamName;
+  final int finalPrice;
+
+  const AuctionResolveResult({
+    required this.handled,
+    required this.sold,
+    this.playerName,
+    this.teamName,
+    this.finalPrice = 0,
+  });
 }
 
 class AuctionNotifier extends Notifier<AuctionState> {
@@ -86,6 +109,8 @@ class AuctionNotifier extends Notifier<AuctionState> {
         // For simplicity in family games, we'll let whoever starts it host the timer.
         // In a fully decentralized system, a Cloud Function handles the timer.
       }
+    }, onError: (e) {
+      // Ignore permission errors on logout
     });
   }
 
@@ -105,6 +130,7 @@ class AuctionNotifier extends Notifier<AuctionState> {
       currentBid: player.basePrice,
       timeRemaining: 30,
       isAuctionActive: true,
+      isResolved: false,
     );
     _syncState(newState);
     _startTimer();
@@ -149,6 +175,89 @@ class AuctionNotifier extends Notifier<AuctionState> {
 
     _timer?.cancel();
     _syncState(AuctionState());
+  }
+
+  Future<AuctionResolveResult> resolveAuctionResultIfNeeded() async {
+    final firestore = FirebaseFirestore.instance;
+    final auctionRef = firestore.collection('auction').doc('current');
+    final playerRef = firestore.collection('players');
+    final teamRef = firestore.collection('teams');
+    final historyRef = firestore.collection('auction_results');
+
+    return firestore.runTransaction((transaction) async {
+      final auctionSnap = await transaction.get(auctionRef);
+      if (!auctionSnap.exists || auctionSnap.data() == null) {
+        return const AuctionResolveResult(handled: false, sold: false);
+      }
+
+      final currentState = AuctionState.fromJson(auctionSnap.data()!);
+      if (currentState.isAuctionActive ||
+          currentState.isResolved ||
+          currentState.currentPlayer == null) {
+        return const AuctionResolveResult(handled: false, sold: false);
+      }
+
+      final player = currentState.currentPlayer!;
+
+      if (currentState.leadingTeam == null) {
+        transaction.update(auctionRef, {'isResolved': true});
+        return AuctionResolveResult(
+          handled: true,
+          sold: false,
+          playerName: player.name,
+        );
+      }
+
+      final leader = currentState.leadingTeam!;
+      final currentBid = currentState.currentBid;
+
+      final winningTeamDoc = teamRef.doc(leader.id);
+      final soldPlayerDoc = playerRef.doc(player.id);
+      final winningTeamSnap = await transaction.get(winningTeamDoc);
+
+      if (!winningTeamSnap.exists || winningTeamSnap.data() == null) {
+        transaction.update(auctionRef, {'isResolved': true});
+        return const AuctionResolveResult(handled: false, sold: false);
+      }
+
+      final winningTeamData = winningTeamSnap.data()!;
+      final currentRemaining =
+          winningTeamData['remainingPoints'] as int? ?? leader.remainingPoints;
+      final updatedRemaining = currentRemaining - currentBid;
+
+      if (updatedRemaining < 0) {
+        transaction.update(auctionRef, {'isResolved': true});
+        return AuctionResolveResult(
+          handled: true,
+          sold: false,
+          playerName: player.name,
+        );
+      }
+
+      transaction.update(winningTeamDoc, {'remainingPoints': updatedRemaining});
+      transaction.update(soldPlayerDoc, {'isSold': true});
+
+      final historyId = const Uuid().v4();
+      transaction.set(historyRef.doc(historyId), {
+        'id': historyId,
+        'player': {...player.toJson(), 'isSold': true},
+        'winningTeam': {
+          ...leader.toJson(),
+          'remainingPoints': updatedRemaining,
+        },
+        'finalPrice': currentBid,
+        'timestamp': DateTime.now().toIso8601String(),
+      });
+
+      transaction.update(auctionRef, {'isResolved': true});
+      return AuctionResolveResult(
+        handled: true,
+        sold: true,
+        playerName: player.name,
+        teamName: leader.name,
+        finalPrice: currentBid,
+      );
+    });
   }
 }
 

@@ -22,6 +22,9 @@ class HistoryNotifier extends Notifier<List<AuctionResult>> {
         results.sort((a, b) => b.timestamp.compareTo(a.timestamp));
         state = results;
       },
+      onError: (e) {
+        // Ignore permission errors on logout
+      },
     );
   }
 

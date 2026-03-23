@@ -17,6 +17,8 @@ class MatchNotifier extends Notifier<List<Match>> {
       final matches = snapshot.docs.map((doc) => Match.fromJson(doc.data())).toList();
       matches.sort((a, b) => a.matchNumber.compareTo(b.matchNumber));
       state = matches;
+    }, onError: (e) {
+      // Ignore permission errors on logout
     });
   }
 

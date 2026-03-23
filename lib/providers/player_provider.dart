@@ -19,6 +19,8 @@ class PlayerNotifier extends Notifier<List<Player>> {
           .map((doc) => Player.fromJson(doc.data()))
           .toList();
       state = players;
+    }, onError: (e) {
+      // Ignore permission errors on logout
     });
   }
 

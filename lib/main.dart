@@ -83,6 +83,19 @@ class FirebaseUnavailableScreen extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      Center(
+                        child: Image.asset(
+                          'assets/app_logo.png',
+                          height: 120,
+                          fit: BoxFit.contain,
+                          errorBuilder: (_, __, ___) => const Icon(
+                            Icons.sports_cricket,
+                            size: 72,
+                            color: Color(0xFFFFD700),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
                       const Text(
                         'Firebase Not Available',
                         style: TextStyle(
