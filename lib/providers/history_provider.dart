@@ -1,10 +1,15 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:uuid/uuid.dart';
 import '../models/auction_result.dart';
 import '../models/player.dart';
 import '../models/team.dart';
 import '../utils/access_control.dart';
+import '../repositories/history_repository.dart';
+import '../repositories/firebase_providers.dart';
+
+final historyRepositoryProvider = Provider<HistoryRepository>((ref) {
+  return HistoryRepository(firestore: ref.watch(firestoreProvider));
+});
 
 class HistoryNotifier extends Notifier<List<AuctionResult>> {
   @override
@@ -14,11 +19,8 @@ class HistoryNotifier extends Notifier<List<AuctionResult>> {
   }
 
   void _listenToHistory() {
-    FirebaseFirestore.instance.collection('auction_results').snapshots().listen(
-      (snapshot) {
-        final results = snapshot.docs
-            .map((doc) => AuctionResult.fromJson(doc.data()))
-            .toList();
+    ref.watch(historyRepositoryProvider).watchHistory().listen(
+      (results) {
         results.sort((a, b) => b.timestamp.compareTo(a.timestamp));
         state = results;
       },
@@ -42,19 +44,13 @@ class HistoryNotifier extends Notifier<List<AuctionResult>> {
       finalPrice: finalPrice,
       timestamp: DateTime.now(),
     );
-    await FirebaseFirestore.instance
-        .collection('auction_results')
-        .doc(result.id)
-        .set(result.toJson());
+    await ref.read(historyRepositoryProvider).addResult(result);
   }
 
   Future<void> removeResult(String resultId) async {
     if (!await isCurrentUserAdmin()) return;
 
-    await FirebaseFirestore.instance
-        .collection('auction_results')
-        .doc(resultId)
-        .delete();
+    await ref.read(historyRepositoryProvider).removeResult(resultId);
   }
 }
 

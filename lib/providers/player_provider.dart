@@ -1,8 +1,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:uuid/uuid.dart';
 import '../models/player.dart';
 import '../utils/access_control.dart';
+import '../repositories/player_repository.dart';
+import '../repositories/firebase_providers.dart';
+
+final playerRepositoryProvider = Provider<PlayerRepository>((ref) {
+  return PlayerRepository(firestore: ref.watch(firestoreProvider));
+});
 
 class PlayerNotifier extends Notifier<List<Player>> {
   @override
@@ -12,12 +17,7 @@ class PlayerNotifier extends Notifier<List<Player>> {
   }
 
   void _listenToPlayers() {
-    FirebaseFirestore.instance.collection('players').snapshots().listen((
-      snapshot,
-    ) {
-      final players = snapshot.docs
-          .map((doc) => Player.fromJson(doc.data()))
-          .toList();
+    ref.watch(playerRepositoryProvider).watchPlayers().listen((players) {
       state = players;
     }, onError: (e) {
       // Ignore permission errors on logout
@@ -39,32 +39,22 @@ class PlayerNotifier extends Notifier<List<Player>> {
       basePrice: basePrice,
       image: image,
     );
-    await FirebaseFirestore.instance
-        .collection('players')
-        .doc(newPlayer.id)
-        .set(newPlayer.toJson());
+    await ref.read(playerRepositoryProvider).addPlayer(newPlayer);
   }
 
   Future<void> markAsSold(String id) async {
     if (!await isCurrentUserAdmin()) return;
-
-    await FirebaseFirestore.instance.collection('players').doc(id).update({
-      'isSold': true,
-    });
+    await ref.read(playerRepositoryProvider).updatePlayerField(id, {'isSold': true});
   }
 
   Future<void> markAsUnsold(String id) async {
     if (!await isCurrentUserAdmin()) return;
-
-    await FirebaseFirestore.instance.collection('players').doc(id).update({
-      'isSold': false,
-    });
+    await ref.read(playerRepositoryProvider).updatePlayerField(id, {'isSold': false});
   }
 
   Future<void> deletePlayer(String id) async {
     if (!await isCurrentUserAdmin()) return;
-
-    await FirebaseFirestore.instance.collection('players').doc(id).delete();
+    await ref.read(playerRepositoryProvider).deletePlayer(id);
   }
 }
 

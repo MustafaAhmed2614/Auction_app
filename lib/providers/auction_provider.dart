@@ -1,10 +1,15 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:uuid/uuid.dart';
 import 'dart:async';
 import '../models/player.dart';
 import '../models/team.dart';
 import '../utils/access_control.dart';
+import '../repositories/auction_repository.dart';
+import '../repositories/firebase_providers.dart';
+
+final auctionRepositoryProvider = Provider<AuctionRepository>((ref) {
+  return AuctionRepository(firestore: ref.watch(firestoreProvider));
+});
 
 class AuctionState {
   final Player? currentPlayer;
@@ -98,16 +103,11 @@ class AuctionNotifier extends Notifier<AuctionState> {
   }
 
   void _listenToAuctionDoc() {
-    FirebaseFirestore.instance.collection('auction').doc('current').snapshots().listen((
-      snapshot,
+    ref.watch(auctionRepositoryProvider).watchCurrentAuction().listen((
+      newState,
     ) {
-      if (snapshot.exists && snapshot.data() != null) {
-        state = AuctionState.fromJson(snapshot.data()!);
-
-        // Timer only runs on the device that initiated the auction or bids,
-        // to avoid all 4 devices running timers out of sync, we let one device command the timer.
-        // For simplicity in family games, we'll let whoever starts it host the timer.
-        // In a fully decentralized system, a Cloud Function handles the timer.
+      if (newState != null) {
+        state = newState;
       }
     }, onError: (e) {
       // Ignore permission errors on logout
@@ -115,10 +115,7 @@ class AuctionNotifier extends Notifier<AuctionState> {
   }
 
   void _syncState(AuctionState newState) {
-    FirebaseFirestore.instance
-        .collection('auction')
-        .doc('current')
-        .set(newState.toJson());
+    ref.read(auctionRepositoryProvider).syncState(newState);
   }
 
   Future<void> startAuctionForPlayer(Player player) async {
@@ -178,19 +175,19 @@ class AuctionNotifier extends Notifier<AuctionState> {
   }
 
   Future<AuctionResolveResult> resolveAuctionResultIfNeeded() async {
-    final firestore = FirebaseFirestore.instance;
-    final auctionRef = firestore.collection('auction').doc('current');
-    final playerRef = firestore.collection('players');
-    final teamRef = firestore.collection('teams');
-    final historyRef = firestore.collection('auction_results');
+    final repo = ref.read(auctionRepositoryProvider);
+    final auctionRef = repo.getAuctionRef();
+    final playerRef = repo.getPlayerRef();
+    final teamRef = repo.getTeamRef();
+    final historyRef = repo.getHistoryRef();
 
-    return firestore.runTransaction((transaction) async {
+    return repo.runTransaction((transaction) async {
       final auctionSnap = await transaction.get(auctionRef);
       if (!auctionSnap.exists || auctionSnap.data() == null) {
         return const AuctionResolveResult(handled: false, sold: false);
       }
 
-      final currentState = AuctionState.fromJson(auctionSnap.data()!);
+      final currentState = AuctionState.fromJson(auctionSnap.data() as Map<String, dynamic>);
       if (currentState.isAuctionActive ||
           currentState.isResolved ||
           currentState.currentPlayer == null) {
@@ -220,7 +217,7 @@ class AuctionNotifier extends Notifier<AuctionState> {
         return const AuctionResolveResult(handled: false, sold: false);
       }
 
-      final winningTeamData = winningTeamSnap.data()!;
+      final winningTeamData = winningTeamSnap.data() as Map<String, dynamic>;
       final currentRemaining =
           winningTeamData['remainingPoints'] as int? ?? leader.remainingPoints;
       final updatedRemaining = currentRemaining - currentBid;

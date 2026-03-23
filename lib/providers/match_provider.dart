@@ -1,9 +1,14 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:uuid/uuid.dart';
 import '../models/match.dart';
 import '../models/team.dart';
 import '../utils/standings_calculator.dart';
+import '../repositories/match_repository.dart';
+import '../repositories/firebase_providers.dart';
+
+final matchRepositoryProvider = Provider<MatchRepository>((ref) {
+  return MatchRepository(firestore: ref.watch(firestoreProvider));
+});
 
 class MatchNotifier extends Notifier<List<Match>> {
   @override
@@ -13,8 +18,7 @@ class MatchNotifier extends Notifier<List<Match>> {
   }
 
   void _listenToMatches() {
-    FirebaseFirestore.instance.collection('matches').snapshots().listen((snapshot) {
-      final matches = snapshot.docs.map((doc) => Match.fromJson(doc.data())).toList();
+    ref.watch(matchRepositoryProvider).watchMatches().listen((matches) {
       matches.sort((a, b) => a.matchNumber.compareTo(b.matchNumber));
       state = matches;
     }, onError: (e) {
@@ -25,13 +29,8 @@ class MatchNotifier extends Notifier<List<Match>> {
   Future<void> generateSchedule(List<Team> teams) async {
     if (teams.length < 4) return; // Expecting exactly 4 teams
 
-    final matchCollection = FirebaseFirestore.instance.collection('matches');
-    
-    // Clear existing schedule if any
-    final existingMatches = await matchCollection.get();
-    for (var doc in existingMatches.docs) {
-      await doc.reference.delete();
-    }
+    final repo = ref.read(matchRepositoryProvider);
+    await repo.clearExistingMatches();
 
     // Generate Round Robin (6 matches)
     int matchNum = 1;
@@ -43,7 +42,7 @@ class MatchNotifier extends Notifier<List<Match>> {
            team2: teams[j],
            matchNumber: matchNum++,
          );
-         await matchCollection.doc(m.id).set(m.toJson());
+         await repo.addMatch(m);
        }
     }
 
@@ -55,18 +54,17 @@ class MatchNotifier extends Notifier<List<Match>> {
       matchNumber: matchNum,
       isFinal: true,
     );
-    await matchCollection.doc(finalMatch.id).set(finalMatch.toJson());
+    await repo.addMatch(finalMatch);
   }
 
   Future<void> updateMatchResult(String matchId, Match updatedMatch, List<Team> allTeams) async {
-     await FirebaseFirestore.instance.collection('matches').doc(matchId).update(updatedMatch.toJson());
+     await ref.read(matchRepositoryProvider).updateMatchResult(matchId, updatedMatch);
      await _evaluateFinalMatch(allTeams);
   }
 
   Future<void> _evaluateFinalMatch(List<Team> allTeams) async {
     // Fetch latest matches to ensure we have the most up-to-date state
-    final snapshot = await FirebaseFirestore.instance.collection('matches').get();
-    final allMatches = snapshot.docs.map((doc) => Match.fromJson(doc.data())).toList();
+    final allMatches = await ref.read(matchRepositoryProvider).getLatestMatches();
 
     final groupMatches = allMatches.where((m) => !m.isFinal).toList();
     if (groupMatches.isEmpty) return;
@@ -81,7 +79,7 @@ class MatchNotifier extends Notifier<List<Match>> {
         final top2 = standings[1].team;
 
         if (finalMatch.team1.id != top1.id || finalMatch.team2.id != top2.id) {
-          await FirebaseFirestore.instance.collection('matches').doc(finalMatch.id).update({
+          await ref.read(matchRepositoryProvider).updateMatchTeams(finalMatch.id, {
             'team1': top1.toJson(),
             'team2': top2.toJson(),
           });

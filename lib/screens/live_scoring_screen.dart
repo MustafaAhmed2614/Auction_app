@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/match_provider.dart';
@@ -17,6 +18,7 @@ class LiveScoringScreen extends ConsumerStatefulWidget {
 class _LiveScoringScreenState extends ConsumerState<LiveScoringScreen> {
   late Innings currentInnings;
   bool isFirstInnings = true;
+  final List<String> _history = [];
 
   @override
   void initState() {
@@ -41,9 +43,38 @@ class _LiveScoringScreenState extends ConsumerState<LiveScoringScreen> {
     }
   }
 
+  void _saveHistory() {
+    // We deep copy the match state using JSON serialization
+    // We need to import dart:convert at the top of the file as well!
+    _history.add(jsonEncode(widget.match.toJson()));
+  }
+
+  void _undo() {
+    if (_history.isEmpty) return;
+    
+    setState(() {
+      final previousStateJson = jsonDecode(_history.removeLast());
+      final previousMatch = Match.fromJson(previousStateJson);
+      
+      widget.match.firstInnings = previousMatch.firstInnings;
+      widget.match.secondInnings = previousMatch.secondInnings;
+      widget.match.isCompleted = previousMatch.isCompleted;
+      widget.match.winner = previousMatch.winner;
+      
+      _initInnings();
+    });
+    
+    ref.read(matchProvider.notifier).updateMatchResult(
+      widget.match.id, 
+      widget.match, 
+      ref.read(teamProvider)
+    );
+  }
+
   void _addRuns(int runs) {
     if (currentInnings.isCompleted || widget.match.isCompleted) return;
     
+    _saveHistory();
     setState(() {
       currentInnings.runs += runs;
       currentInnings.ballsBowled++;
@@ -55,6 +86,7 @@ class _LiveScoringScreenState extends ConsumerState<LiveScoringScreen> {
   void _addExtra(int runs) {
      if (currentInnings.isCompleted || widget.match.isCompleted) return;
      
+     _saveHistory();
      setState(() {
        currentInnings.runs += runs; // Wide/No-ball doesn't count as a legal ball
      });
@@ -64,6 +96,7 @@ class _LiveScoringScreenState extends ConsumerState<LiveScoringScreen> {
   void _addWicket() {
     if (currentInnings.isCompleted || widget.match.isCompleted) return;
     
+    _saveHistory();
     setState(() {
       currentInnings.wickets++;
       currentInnings.ballsBowled++;
@@ -229,8 +262,10 @@ class _LiveScoringScreenState extends ConsumerState<LiveScoringScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              _scoreBtn('Wide', () => _addExtra(1), width: 100, color: Colors.orange),
-              _scoreBtn('No Ball', () => _addExtra(1), width: 100, color: Colors.orange),
+              _scoreBtn('Wide', () => _addExtra(1), width: 90, color: Colors.orange),
+              _scoreBtn('No Ball', () => _addExtra(1), width: 90, color: Colors.orange),
+              if (_history.isNotEmpty)
+                _scoreBtn('Undo', _undo, width: 90, color: Colors.blueGrey),
             ],
           )
         ],

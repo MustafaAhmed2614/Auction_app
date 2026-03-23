@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../repositories/auth_repository.dart';
+import '../repositories/firebase_providers.dart';
 
 enum AppUserRole { admin, user }
 
@@ -17,8 +19,15 @@ final firebaseAuthProvider = Provider<FirebaseAuth>((ref) {
   return FirebaseAuth.instance;
 });
 
+final authRepositoryProvider = Provider<AuthRepository>((ref) {
+  return AuthRepository(
+    firestore: ref.watch(firestoreProvider),
+    auth: ref.watch(firebaseAuthProvider),
+  );
+});
+
 final authStateChangesProvider = StreamProvider<User?>((ref) {
-  return ref.watch(firebaseAuthProvider).authStateChanges();
+  return ref.watch(authRepositoryProvider).authStateChanges();
 });
 
 final currentUserProvider = Provider<User?>((ref) {
@@ -31,11 +40,7 @@ final userProfileProvider = StreamProvider<Map<String, dynamic>?>((ref) {
   final user = ref.watch(currentUserProvider);
   if (user == null) return Stream.value(null);
 
-  return FirebaseFirestore.instance
-      .collection('users')
-      .doc(user.uid)
-      .snapshots()
-      .map((snapshot) => snapshot.data());
+  return ref.watch(authRepositoryProvider).userProfileStream(user.uid);
 });
 
 final userRoleProvider = Provider<AppUserRole>((ref) {

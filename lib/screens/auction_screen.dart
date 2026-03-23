@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:confetti/confetti.dart';
-// import 'package:audioplayers/audioplayers.dart'; // optional audio
+import 'package:flutter_animate/flutter_animate.dart';
 import '../providers/auth_provider.dart';
 import '../providers/auction_provider.dart';
 import '../providers/player_provider.dart';
@@ -242,15 +242,18 @@ class _AuctionScreenState extends ConsumerState<AuctionScreen> {
       child: Column(
         children: [
           // Player info and Timer
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: const BoxDecoration(
-              color: Colors.black45,
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(32),
-                bottomRight: Radius.circular(32),
-              ),
-            ),
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: const BoxDecoration(
+                  color: Colors.black45,
+                  borderRadius: BorderRadius.only(
+                    bottomLeft: Radius.circular(32),
+                    bottomRight: Radius.circular(32),
+                  ),
+                ),
             child: Column(
               children: [
                 Text(
@@ -300,35 +303,65 @@ class _AuctionScreenState extends ConsumerState<AuctionScreen> {
                           ),
                       ],
                     ),
-                    Container(
-                      width: 80,
-                      height: 80,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: state.timeRemaining <= 3
-                              ? Colors.red
-                              : Colors.green,
-                          width: 4,
-                        ),
-                      ),
-                      child: Center(
-                        child: Text(
-                          '${state.timeRemaining}',
-                          style: TextStyle(
-                            color: state.timeRemaining <= 3
-                                ? Colors.red
-                                : Colors.white,
-                            fontSize: 36,
-                            fontWeight: FontWeight.bold,
+                    Builder(
+                      builder: (context) {
+                        Widget timerWidget = Container(
+                          width: 80,
+                          height: 80,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: state.timeRemaining <= 5
+                                  ? Colors.red
+                                  : Colors.green,
+                              width: 4,
+                            ),
                           ),
-                        ),
-                      ),
+                          child: Center(
+                            child: Text(
+                              '${state.timeRemaining}',
+                              style: TextStyle(
+                                color: state.timeRemaining <= 5
+                                    ? Colors.red
+                                    : Colors.white,
+                                fontSize: 36,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        );
+
+                        if (state.isAuctionActive && state.timeRemaining <= 5 && state.timeRemaining > 0) {
+                          timerWidget = timerWidget.animate(onPlay: (controller) => controller.repeat(reverse: true))
+                            .scaleXY(end: 1.1, duration: 400.ms)
+                            .tint(color: Colors.redAccent, end: 0.3, duration: 400.ms)
+                            .shimmer(duration: 400.ms);
+                        }
+                        return timerWidget;
+                      }
                     ),
                   ],
                 ),
               ],
             ),
+          ),
+          if (!state.isAuctionActive && state.currentPlayer != null)
+              Transform.rotate(
+                angle: -0.2,
+                child: Text(
+                  state.leadingTeam != null ? 'SOLD!' : 'UNSOLD',
+                  style: TextStyle(
+                    fontSize: 80,
+                    fontWeight: FontWeight.bold,
+                    color: state.leadingTeam != null ? Colors.redAccent : Colors.grey,
+                    shadows: const [Shadow(color: Colors.black, blurRadius: 10)],
+                  ),
+                )
+                .animate()
+                .scaleXY(begin: 3, end: 1, duration: 500.ms, curve: Curves.easeOutBack)
+                .fadeIn(duration: 500.ms)
+              ),
+            ],
           ),
 
           const SizedBox(height: 16),
