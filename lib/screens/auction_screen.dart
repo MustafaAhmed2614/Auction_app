@@ -285,7 +285,7 @@ class _AuctionScreenState extends ConsumerState<AuctionScreen> {
                           style: TextStyle(color: Colors.white70, fontSize: 16),
                         ),
                         Text(
-                          '${state.currentBid} (Next +2000)',
+                          '${state.currentBid} (Next +5000)',
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 28,
@@ -433,7 +433,7 @@ class _AuctionScreenState extends ConsumerState<AuctionScreen> {
     String? currentUserTeamId,
   ) {
     bool isLeading = state.leadingTeam?.id == team.id;
-    final nextBidAmount = state.currentBid + 2000;
+    final nextBidAmount = state.currentBid + 5000;
     final rawLivePurse =
         team.remainingPoints - (isLeading ? state.currentBid : 0);
     final livePurse = rawLivePurse < 0 ? 0 : rawLivePurse;
@@ -513,7 +513,7 @@ class _AuctionScreenState extends ConsumerState<AuctionScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFFFD700),
               ),
-              child: const Text('+2000', style: TextStyle(color: Colors.black)),
+              child: const Text('+5000', style: TextStyle(color: Colors.black)),
             ),
           ],
         ],

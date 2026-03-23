@@ -23,7 +23,7 @@ class AuctionState {
     this.currentPlayer,
     this.currentBid = 0,
     this.leadingTeam,
-    this.timeRemaining = 30,
+    this.timeRemaining = 20,
     this.isAuctionActive = false,
     this.isResolved = false,
   });
@@ -55,7 +55,7 @@ class AuctionState {
       leadingTeam: json['leadingTeam'] != null
           ? Team.fromJson(Map<String, dynamic>.from(json['leadingTeam']))
           : null,
-      timeRemaining: json['timeRemaining'] as int? ?? 30,
+      timeRemaining: json['timeRemaining'] as int? ?? 20,
       isAuctionActive: json['isAuctionActive'] as bool? ?? false,
       isResolved: json['isResolved'] as bool? ?? false,
     );
@@ -125,7 +125,7 @@ class AuctionNotifier extends Notifier<AuctionState> {
     final newState = AuctionState(
       currentPlayer: player,
       currentBid: player.basePrice,
-      timeRemaining: 30,
+      timeRemaining: 20,
       isAuctionActive: true,
       isResolved: false,
     );
@@ -145,7 +145,7 @@ class AuctionNotifier extends Notifier<AuctionState> {
     final newState = state.copyWith(
       currentBid: bidAmount,
       leadingTeam: team,
-      timeRemaining: 30,
+      timeRemaining: 20,
     );
     _syncState(newState);
 
