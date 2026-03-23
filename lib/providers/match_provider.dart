@@ -26,7 +26,7 @@ class MatchNotifier extends Notifier<List<Match>> {
     });
   }
 
-  Future<void> generateSchedule(List<Team> teams) async {
+  Future<void> generateSchedule(List<Team> teams, {int overs = 5}) async {
     if (teams.length < 4) return; // Expecting exactly 4 teams
 
     final repo = ref.read(matchRepositoryProvider);
@@ -41,17 +41,18 @@ class MatchNotifier extends Notifier<List<Match>> {
            team1: teams[i],
            team2: teams[j],
            matchNumber: matchNum++,
+           totalOvers: overs,
          );
          await repo.addMatch(m);
        }
     }
 
-    // Add Placeholder for Final (Match 7)
     final finalMatch = Match(
       id: const Uuid().v4(),
       team1: teams[0], // Placeholder, will be updated based on points table
       team2: teams[1], // Placeholder
       matchNumber: matchNum,
+      totalOvers: overs,
       isFinal: true,
     );
     await repo.addMatch(finalMatch);

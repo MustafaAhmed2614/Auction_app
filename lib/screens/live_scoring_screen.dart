@@ -73,41 +73,56 @@ class _LiveScoringScreenState extends ConsumerState<LiveScoringScreen> {
 
   void _addRuns(int runs) {
     if (currentInnings.isCompleted || widget.match.isCompleted) return;
-    
-    _saveHistory();
-    setState(() {
-      currentInnings.runs += runs;
-      currentInnings.ballsBowled++;
-      _checkInningsStatus();
-    });
-    ref.read(matchProvider.notifier).updateMatchResult(widget.match.id, widget.match, ref.read(teamProvider));
+    try {
+      _saveHistory();
+      setState(() {
+        currentInnings.runs += runs;
+        currentInnings.ballsBowled++;
+        _checkInningsStatus();
+      });
+      ref.read(matchProvider.notifier).updateMatchResult(widget.match.id, widget.match, ref.read(teamProvider)).catchError((e) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Firebase Error: $e')));
+      });
+    } catch (e, stack) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+    }
   }
 
   void _addExtra(int runs) {
      if (currentInnings.isCompleted || widget.match.isCompleted) return;
-     
-     _saveHistory();
-     setState(() {
-       currentInnings.runs += runs; // Wide/No-ball doesn't count as a legal ball
-     });
-     ref.read(matchProvider.notifier).updateMatchResult(widget.match.id, widget.match, ref.read(teamProvider));
+     try {
+       _saveHistory();
+       setState(() {
+         currentInnings.runs += runs; // Wide/No-ball doesn't count as a legal ball
+       });
+       ref.read(matchProvider.notifier).updateMatchResult(widget.match.id, widget.match, ref.read(teamProvider)).catchError((e) {
+         if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Firebase Error: $e')));
+       });
+     } catch (e) {
+       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+     }
   }
 
   void _addWicket() {
     if (currentInnings.isCompleted || widget.match.isCompleted) return;
-    
-    _saveHistory();
-    setState(() {
-      currentInnings.wickets++;
-      currentInnings.ballsBowled++;
-      _checkInningsStatus();
-    });
-    ref.read(matchProvider.notifier).updateMatchResult(widget.match.id, widget.match, ref.read(teamProvider));
+    try {
+      _saveHistory();
+      setState(() {
+        currentInnings.wickets++;
+        currentInnings.ballsBowled++;
+        _checkInningsStatus();
+      });
+      ref.read(matchProvider.notifier).updateMatchResult(widget.match.id, widget.match, ref.read(teamProvider)).catchError((e) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Firebase Error: $e')));
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+    }
   }
 
   void _checkInningsStatus() {
-    // 5 overs = 30 balls, max 10 wickets
-    if (currentInnings.ballsBowled >= 30 || currentInnings.wickets >= 10) {
+    final totalBalls = widget.match.totalOvers * 6;
+    if (currentInnings.ballsBowled >= totalBalls || currentInnings.wickets >= 10) {
       currentInnings.isCompleted = true;
       
       if (isFirstInnings) {
@@ -226,7 +241,7 @@ class _LiveScoringScreenState extends ConsumerState<LiveScoringScreen> {
             if (target != null && !widget.match.isCompleted) ...[
               const SizedBox(height: 8),
               Text(
-                'Target: $target | Need ${target - currentInnings.runs} from ${30 - currentInnings.ballsBowled} balls',
+                'Target: $target | Need ${target - currentInnings.runs} from ${(widget.match.totalOvers * 6) - currentInnings.ballsBowled} balls',
                 style: const TextStyle(color: Colors.greenAccent, fontSize: 16, fontWeight: FontWeight.bold),
               ),
             ]
