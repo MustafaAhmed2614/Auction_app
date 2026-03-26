@@ -18,7 +18,7 @@ class TeamNotifier extends Notifier<List<Team>> {
   void _listenToTeams() {
     ref.watch(teamRepositoryProvider).watchTeams().listen((teams) {
       if (teams.isEmpty) {
-        _initializeDefaultTeams();
+        state = [];
         return;
       }
       state = teams;
@@ -27,14 +27,14 @@ class TeamNotifier extends Notifier<List<Team>> {
     });
   }
 
-  Future<void> _initializeDefaultTeams() async {
-    final defaultTeams = [
-      Team(id: 'team1', name: 'Team Alpha', logoPath: 'assets/logos/logo1.png'),
-      Team(id: 'team2', name: 'Team Braves', logoPath: 'assets/logos/logo2.png'),
-      Team(id: 'team3', name: 'Team Challengers', logoPath: 'assets/logos/logo3.png'),
-      Team(id: 'team4', name: 'Team Dominators', logoPath: 'assets/logos/logo4.png'),
-    ];
-    await ref.read(teamRepositoryProvider).initializeDefaultTeams(defaultTeams);
+  Future<void> updateTeamName(String teamId, String newName) async {
+    if (!await isCurrentUserAdmin()) return;
+    await ref.read(teamRepositoryProvider).updateTeamName(teamId, newName);
+  }
+
+  Future<void> setTeamBudget(String teamId, int newBudget) async {
+    if (!await isCurrentUserAdmin()) return;
+    await ref.read(teamRepositoryProvider).setTeamBudget(teamId, newBudget);
   }
 
   Future<void> updateTeamPoints(String teamId, int previousPoints, int deductedAmount) async {

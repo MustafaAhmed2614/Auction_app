@@ -503,11 +503,21 @@ class _AuctionScreenState extends ConsumerState<AuctionScreen> {
           if (!isLeading) ...[
             ElevatedButton(
               onPressed: canBid
-                  ? () {
-                      // _playBidSound();
-                      ref
-                          .read(auctionProvider.notifier)
-                          .placeBid(team, nextBidAmount);
+                  ? () async {
+                      try {
+                        await ref
+                            .read(auctionProvider.notifier)
+                            .placeBid(team, nextBidAmount);
+                      } catch (e) {
+                         if (context.mounted) {
+                           ScaffoldMessenger.of(context).showSnackBar(
+                             SnackBar(
+                               content: Text('Failed to place bid: $e'),
+                               backgroundColor: Colors.red,
+                             ),
+                           );
+                         }
+                      }
                     }
                   : null,
               style: ElevatedButton.styleFrom(

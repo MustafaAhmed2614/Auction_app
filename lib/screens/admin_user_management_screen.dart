@@ -8,6 +8,50 @@ import '../providers/team_provider.dart';
 class AdminUserManagementScreen extends ConsumerWidget {
   const AdminUserManagementScreen({super.key});
 
+  void _showResetConfirmationDialog(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Factory Reset Application?'),
+        content: const Text(
+          'WARNING: This will delete ALL teams, matches, '
+          'and auction history. All players and users will be unassigned. '
+          'This action CANNOT be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Resetting Application...')),
+              );
+              try {
+                await ref.read(adminUserActionsProvider).resetApplication();
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Application Reset Successful')),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error resetting application: $e')),
+                  );
+                }
+              }
+            },
+            child: const Text('RESET', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final usersAsync = ref.watch(allUsersProvider);
@@ -18,6 +62,13 @@ class AdminUserManagementScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('User Access Management'),
         backgroundColor: const Color(0xFF1B5E20),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.warning_amber_rounded, color: Colors.orange),
+            tooltip: 'Factory Reset App',
+            onPressed: () => _showResetConfirmationDialog(context, ref),
+          ),
+        ],
       ),
       body: Container(
         decoration: const BoxDecoration(

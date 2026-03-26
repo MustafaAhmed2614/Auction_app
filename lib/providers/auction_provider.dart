@@ -114,8 +114,8 @@ class AuctionNotifier extends Notifier<AuctionState> {
     });
   }
 
-  void _syncState(AuctionState newState) {
-    ref.read(auctionRepositoryProvider).syncState(newState);
+  Future<void> _syncState(AuctionState newState) async {
+    await ref.read(auctionRepositoryProvider).syncState(newState);
   }
 
   Future<void> startAuctionForPlayer(Player player) async {
@@ -129,25 +129,26 @@ class AuctionNotifier extends Notifier<AuctionState> {
       isAuctionActive: true,
       isResolved: false,
     );
-    _syncState(newState);
+    await _syncState(newState);
     _startTimer();
   }
 
   Future<void> placeBid(Team team, int bidAmount) async {
     final canBidForTeam = await canCurrentUserBidForTeam(team.id);
-    if (!canBidForTeam) return;
+    if (!canBidForTeam) throw Exception('You do not have permission to bid for this team.');
 
-    if (!state.isAuctionActive || state.currentPlayer == null) return;
+    if (!state.isAuctionActive || state.currentPlayer == null) throw Exception('Auction is not active.');
 
-    if (team.remainingPoints < bidAmount) return;
-    if (bidAmount <= state.currentBid) return;
+    if (team.remainingPoints < bidAmount) throw Exception('Not enough points.');
+    if (bidAmount <= state.currentBid) throw Exception('Bid too low.');
 
     final newState = state.copyWith(
       currentBid: bidAmount,
       leadingTeam: team,
       timeRemaining: 20,
     );
-    _syncState(newState);
+    
+    await _syncState(newState);
 
     // Keep the timer host on admin device to avoid conflicting timer writers.
     if (await isCurrentUserAdmin()) {

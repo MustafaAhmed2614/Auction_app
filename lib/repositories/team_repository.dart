@@ -12,13 +12,12 @@ class TeamRepository {
     });
   }
 
-  Future<void> initializeDefaultTeams(List<Team> defaultTeams) async {
-    final batch = _firestore.batch();
-    for (var team in defaultTeams) {
-      final docRef = _firestore.collection('teams').doc(team.id);
-      batch.set(docRef, team.toJson());
-    }
-    await batch.commit();
+  Future<void> updateTeamName(String teamId, String newName) async {
+    await _firestore.collection('teams').doc(teamId).update({'name': newName});
+  }
+
+  Future<void> setTeamBudget(String teamId, int newBudget) async {
+    await _firestore.collection('teams').doc(teamId).update({'remainingPoints': newBudget});
   }
 
   Future<void> addTeam(Team team) async {

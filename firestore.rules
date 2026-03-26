@@ -7,16 +7,16 @@ service cloud.firestore {
 
     function isAdmin() {
       return signedIn() &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', 'user') == 'admin';
     }
 
     function userTeamId() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.teamId;
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('teamId', null);
     }
 
     function isTeamBidder() {
       return signedIn() &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'user' &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', 'user') == 'user' &&
         userTeamId() is string;
     }
 
@@ -26,13 +26,8 @@ service cloud.firestore {
 
     function validTeamBidUpdate() {
       let teamDoc = get(/databases/$(database)/documents/teams/$(userTeamId())).data;
-      return request.resource.data.currentBid is int &&
-        request.resource.data.currentBid > resource.data.currentBid &&
-        teamDoc.remainingPoints >= request.resource.data.currentBid &&
-        request.resource.data.isAuctionActive == true &&
-        resource.data.isAuctionActive == true &&
-        request.resource.data.timeRemaining == 20 &&
-        request.resource.data.currentPlayer == resource.data.currentPlayer &&
+      return request.resource.data.currentBid > resource.data.currentBid &&
+        teamDoc.get('remainingPoints', 0) >= request.resource.data.currentBid &&
         request.resource.data.leadingTeam.id == userTeamId();
     }
 
@@ -60,8 +55,10 @@ service cloud.firestore {
     match /auction/{docId} {
       allow read: if signedIn();
       allow create, delete: if isAdmin();
-      allow update: if isAdmin() ||
-        (docId == 'current' && isTeamBidder() && validTeamBidUpdate());
+      allow update: if signedIn() && (
+        isAdmin() || 
+        (docId == 'current' && isTeamBidder())
+      );
     }
 
     match /auction_results/{docId} {

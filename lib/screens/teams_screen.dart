@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/auth_provider.dart';
 import '../providers/team_provider.dart';
+import '../providers/history_provider.dart';
 import '../models/team.dart';
 import 'squad_screen.dart';
 
@@ -12,6 +13,8 @@ class TeamsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final teams = ref.watch(teamProvider);
     final isAdmin = ref.watch(isAdminProvider);
+    final history = ref.watch(historyProvider);
+    final isAuctionStarted = history.isNotEmpty;
 
     return Scaffold(
       appBar: AppBar(
@@ -31,8 +34,84 @@ class TeamsScreen extends ConsumerWidget {
           itemCount: teams.length,
           itemBuilder: (context, index) {
             final team = teams[index];
+
+            Widget buildCard() {
+              return Card(
+                color: Colors.white12,
+                margin: const EdgeInsets.only(bottom: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: const BorderSide(color: Colors.white24, width: 1),
+                ),
+                child: InkWell(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => SquadScreen(team: team)),
+                    );
+                  },
+                  borderRadius: BorderRadius.circular(16),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 60,
+                          height: 60,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.white,
+                            border: Border.all(color: const Color(0xFFFFD700), width: 2),
+                          ),
+                          child: const Icon(
+                            Icons.shield,
+                            color: Color(0xFF1B5E20),
+                            size: 30,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                team.name,
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Budget: ${team.remainingPoints} pts',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  color: Color(0xFFFFD700),
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (isAdmin)
+                          IconButton(
+                            icon: const Icon(Icons.edit, color: Colors.white70),
+                            onPressed: () {
+                              _showEditTeamDialog(context, ref, team, isAuctionStarted);
+                            },
+                          ),
+                        if (!isAdmin)
+                          const Icon(Icons.chevron_right, color: Colors.white54),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }
+
             if (!isAdmin) {
-              return _buildTeamCard(context, team);
+              return buildCard();
             }
             return Dismissible(
               key: Key(team.id),
@@ -49,7 +128,7 @@ class TeamsScreen extends ConsumerWidget {
                   context,
                 ).showSnackBar(SnackBar(content: Text('${team.name} deleted')));
               },
-              child: _buildTeamCard(context, team),
+              child: buildCard(),
             );
           },
         ),
@@ -91,25 +170,18 @@ class TeamsScreen extends ConsumerWidget {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text(
-                'Cancel',
-                style: TextStyle(color: Colors.white54),
-              ),
+              child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
             ),
             ElevatedButton(
               onPressed: () {
                 final name = nameController.text.trim();
                 final budget = int.tryParse(budgetController.text) ?? 100000;
                 if (name.isNotEmpty) {
-                  ref
-                      .read(teamProvider.notifier)
-                      .addTeam(name, budget, 'assets/logos/logo1.png');
+                  ref.read(teamProvider.notifier).addTeam(name, budget, 'assets/logos/logo1.png');
                   Navigator.pop(context);
                 }
               },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFFD700),
-              ),
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFFD700)),
               child: const Text('Save', style: TextStyle(color: Colors.black)),
             ),
           ],
@@ -118,70 +190,63 @@ class TeamsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildTeamCard(BuildContext context, Team team) {
-    return Card(
-      color: Colors.white12,
-      margin: const EdgeInsets.only(bottom: 16),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: Colors.white24, width: 1),
-      ),
-      child: InkWell(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => SquadScreen(team: team)),
-          );
-        },
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
+  void _showEditTeamDialog(BuildContext context, WidgetRef ref, Team team, bool isAuctionStarted) {
+    final nameController = TextEditingController(text: team.name);
+    final budgetController = TextEditingController(text: team.remainingPoints.toString());
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Edit Team'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white,
-                  border: Border.all(color: const Color(0xFFFFD700), width: 2),
-                ),
-                child: const Icon(
-                  Icons.shield,
-                  color: Color(0xFF1B5E20),
-                  size: 30,
-                ),
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(labelText: 'Team Name'),
+                autofocus: true,
               ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      team.name,
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Budget: ${team.remainingPoints} pts',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        color: Color(0xFFFFD700),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
+              TextField(
+                controller: budgetController,
+                decoration: InputDecoration(
+                  labelText: 'Budget (Points)',
+                  helperText: isAuctionStarted ? 'Cannot change budget after auction starts' : null,
+                  helperMaxLines: 2,
+                  helperStyle: const TextStyle(color: Colors.redAccent),
                 ),
+                keyboardType: TextInputType.number,
+                enabled: !isAuctionStarted, // Disable if auction started
               ),
-              const Icon(Icons.chevron_right, color: Colors.white54),
             ],
           ),
-        ),
-      ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final name = nameController.text.trim();
+                if (name.isNotEmpty && name != team.name) {
+                  ref.read(teamProvider.notifier).updateTeamName(team.id, name);
+                }
+
+                if (!isAuctionStarted) {
+                  final budget = int.tryParse(budgetController.text);
+                  if (budget != null && budget != team.remainingPoints) {
+                    ref.read(teamProvider.notifier).setTeamBudget(team.id, budget);
+                  }
+                }
+                
+                Navigator.pop(context);
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFFD700)),
+              child: const Text('Save', style: TextStyle(color: Colors.black)),
+            ),
+          ],
+        );
+      },
     );
   }
 }
