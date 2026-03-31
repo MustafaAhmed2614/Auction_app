@@ -107,7 +107,6 @@
 				EA1CB2474C4BF740B7811905 /* Pods-RunnerTests.release.xcconfig */,
 				847C0DD8A2AF656E075D5882 /* Pods-RunnerTests.profile.xcconfig */,
 			);
-			name = Pods;
 			path = Pods;
 			sourceTree = "<group>";
 		};
