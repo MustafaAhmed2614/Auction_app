@@ -145,7 +145,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           const Text(
-                            'BPL Auction Login',
+                            'Auction Login',
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 28,
