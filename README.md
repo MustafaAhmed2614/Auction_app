@@ -1,4 +1,4 @@
-# bpl_auction
+# AuctionApp
 
 A feature-rich, real-time online auction and bidding application built to deliver a seamless buying and selling experience. Users can explore live auctions, place competitive bids in real time, and list their own items for auction.
 
